@@ -44,7 +44,7 @@ uv run python webgpu/package.py .local/webgpu-build .local/webgpu-site --cpu-bui
 uv run python -m http.server 8876 --bind 127.0.0.1 --directory .local/webgpu-site
 ```
 
-ブラウザーで[http://127.0.0.1:8876/](http://127.0.0.1:8876/)を開き、母語と翻訳先言語を選択して翻訳を実行してください。
+ブラウザーで[http://127.0.0.1:8876/](http://127.0.0.1:8876/)を開き、自分の言語と翻訳先言語を選択して翻訳を実行してください。
 
 ## ライセンス
 

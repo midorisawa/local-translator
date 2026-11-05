@@ -1031,7 +1031,7 @@ nativeLanguageDialog.addEventListener("cancel", (event) => {
 $("native-language-form").addEventListener("submit", (event) => {
   event.preventDefault();
   if (nativeLanguage.value === frequentLanguage.value) {
-    feedback("native-language-feedback", "よく使う言語には、母語と異なる言語を選んでください。", true);
+    feedback("native-language-feedback", "よく使う言語には、自分の言語と異なる言語を選んでください。", true);
     return;
   }
   try {

@@ -181,14 +181,14 @@
     <p id="retranslate-menu-title">翻訳先を選択</p>
     <div id="retranslate-options"></div>
   </div>
-  <dialog autofocus id="native-language-dialog" aria-labelledby="native-language-title" aria-describedby="native-language-description" closedby="any">
-    <h2 id="native-language-title">翻訳先の設定</h2>
+  <dialog id="native-language-dialog" aria-labelledby="native-language-title" aria-describedby="native-language-description" closedby="any">
+    <h2 id="native-language-title" tabindex="-1" autofocus>翻訳先の設定</h2>
     <div class="language-setting-note">
       <strong>自動切り替え</strong>
-      <p id="native-language-description">母語が入力された場合はよく使う言語へ、外国語の場合は母語へ翻訳します。</p>
+      <p id="native-language-description">自分の言語が入力された場合はよく使う言語へ、外国語の場合は自分の言語へ翻訳します。</p>
     </div>
     <form id="native-language-form" class="options">
-      <label for="native-language">母語</label>
+      <label for="native-language">自分の言語</label>
       <select id="native-language" required>
         <option value="">言語を選択</option>
       </select>
