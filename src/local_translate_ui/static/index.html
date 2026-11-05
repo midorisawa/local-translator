@@ -47,7 +47,7 @@
           </button>
           <div id="history-edit-menu" hidden>
             <button id="delete-all-history" type="button">全ての履歴を削除</button>
-            <button id="close-history-edit" type="button">閉じる</button>
+            <button id="close-history-edit" class="close-button" type="button" aria-label="履歴の編集を閉じる"><span aria-hidden="true">×</span></button>
           </div>
         </div>
         <p id="history-feedback" role="status"></p>
@@ -209,7 +209,7 @@
         <h2 id="glossary-title">用語集の管理</h2>
         <p>翻訳で使う訳語を、用語集ごとにまとめられます。</p>
       </div>
-      <form method="dialog"><button aria-label="用語集の管理を閉じる">閉じる</button></form>
+      <form method="dialog"><button class="close-button" aria-label="用語集の管理を閉じる"><span aria-hidden="true">×</span></button></form>
     </div>
     <form id="glossary-form" class="glossary-manager">
       <aside class="glossary-navigation" aria-label="保存済みの用語集">
@@ -255,18 +255,19 @@
   <dialog autofocus id="manager" aria-labelledby="manager-title" closedby="any">
     <div class="dialog-header">
       <h2 id="manager-title">モデル管理</h2>
-      <form method="dialog"><button>閉じる</button></form>
+      <form method="dialog"><button class="close-button" aria-label="モデル管理を閉じる"><span aria-hidden="true">×</span></button></form>
     </div>
     <section class="model-catalog" aria-labelledby="model-catalog-title">
       <h3 id="model-catalog-title">モデル一覧</h3>
-      <p>必要なモデルだけダウンロードできます。初回は0.8Bがおすすめです。</p>
+      <p>必要なモデルだけダウンロードできます。</p>
       <div id="model-list"></div>
     </section>
     <p id="download-feedback" role="status"></p>
     <div class="browser-model-storage">
       <p>モデルはこのサイトのブラウザーストレージに保存されます。8B・31Bの実行には64ビットWebAssembly対応と十分なメモリが必要です。</p>
-      <label for="import-model">保存済みのGGUFモデルを取り込む</label>
-      <input id="import-model" type="file" accept=".gguf">
+      <h3 id="import-model-title">保存済みのGGUFモデルを取り込む</h3>
+      <button id="choose-model-file" type="button" aria-describedby="import-model-title">ファイルを選択</button>
+      <input id="import-model" type="file" accept=".gguf" hidden>
     </div>
     <p class="model-license">モデルには<a href="https://plamo.preferredai.jp/info/plamo-community-license-ja" target="_blank" rel="noopener">PLaMoコミュニティライセンス</a>が適用されます。商用利用の場合は<a href="https://huggingface.co/pfnet/plamo-3-translate-0.8b-GGUF/blob/main/README_ja.md#ライセンス" target="_blank" rel="noopener">事前登録などの利用条件</a>を確認してください。</p>
   </dialog>

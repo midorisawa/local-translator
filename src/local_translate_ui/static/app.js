@@ -340,12 +340,16 @@ function renderModels() {
       details.append(title, size, status, progress);
       const actions = document.createElement("div");
       actions.className = "model-row-actions";
-      actions.append(check, remove, button);
+      const recommendation = document.createElement("span");
+      recommendation.className = "model-recommendation";
+      recommendation.textContent = "おすすめ";
+      actions.append(check, remove, recommendation, button);
       row.append(details, actions);
       $("model-list").append(row);
-      rows.set(entry.id, { status, progress, button, check, remove });
+      rows.set(entry.id, { status, progress, button, check, remove, recommendation });
     }
-    const { status, progress, button, check, remove } = rows.get(entry.id);
+    const { status, progress, button, check, remove, recommendation } = rows.get(entry.id);
+    recommendation.hidden = entry.installed || entry.id !== (state.gpu_available ? "2b" : "0.8b");
     const download = entry.download;
     const running = Boolean(download?.running);
     const received = Math.floor((download?.received || 0) / 1e6);
@@ -391,12 +395,14 @@ function openModelManager() {
   refresh();
 }
 
+const chooseModelFile = $("choose-model-file");
+chooseModelFile.addEventListener("click", () => $("import-model").click());
 $("import-model").addEventListener("change", async ({ currentTarget }) => {
   const file = currentTarget.files[0];
   if (!file || translating || selecting) return;
   selecting = true;
   updateControls();
-  currentTarget.disabled = true;
+  chooseModelFile.disabled = true;
   feedback("download-feedback", "モデルを取り込み中…");
   try {
     const { importModel } = await import("./browser-api.js");
@@ -408,7 +414,7 @@ $("import-model").addEventListener("change", async ({ currentTarget }) => {
   } finally {
     selecting = false;
     updateControls();
-    currentTarget.disabled = false;
+    chooseModelFile.disabled = false;
     currentTarget.value = "";
   }
 });

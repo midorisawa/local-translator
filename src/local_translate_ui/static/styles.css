@@ -268,7 +268,7 @@ dialog::backdrop { background: #0006; }
 #native-language-title:focus, #manager-title:focus { outline: none; }
 #manager-title { font-size: 1.25rem; }
 .model-catalog { margin-top: 1rem; }
-.model-catalog h3 { margin: 0; font-size: .95rem; font-weight: 600; }
+.model-catalog h3, .browser-model-storage > h3 { margin: 0; font-size: .95rem; font-weight: 600; }
 .model-catalog p, .browser-model-storage > p { margin: .25rem 0 .65rem; color: var(--text-muted); font-size: .875rem; }
 .model-license { color: var(--text-muted); font-size: .8rem; }
 .model-license { margin: .85rem 0 0; }
@@ -289,12 +289,15 @@ button.danger { color: white; background: #a02538; border-color: #a02538; }
 button.danger:not(:disabled):hover { background: #821d2d; }
 .dialog-header { justify-content: space-between; }
 .dialog-header h2 { margin: 0; }
+.close-button { display: grid; place-items: center; min-width: 42px; padding: 0; }
+.close-button span { font-size: 1.4rem; line-height: 1; }
+#close-history-edit { justify-self: end; }
 .sidebar-history { display: flex; flex-direction: column; min-height: 0; margin-top: 1.4rem; }
 .sidebar-footer { flex-shrink: 0; margin-top: auto; padding: .75rem .65rem 0; color: var(--text-muted); font-size: .75rem; }
 .history-heading { position: relative; display: flex; align-items: center; gap: .25rem; margin: 0 .25rem .4rem .65rem; }
 .sidebar-history h2 { margin: 0 auto 0 0; font-size: .8rem; color: var(--text-muted); }
 .browser-model-storage { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; overflow-wrap: anywhere; }
-#import-model { width: 100%; min-width: 0; }
+#choose-model-file { justify-self: start; font-size: .875rem; }
 .history-heading > button:not([hidden]) { display: grid; place-items: center; width: 30px; min-height: 30px; padding: 0; border: 0; background: transparent; color: var(--text-muted); }
 #history-edit-menu:not([hidden]) { position: absolute; top: calc(100% + .25rem); right: 0; z-index: 3; display: grid; min-width: max-content; padding: .25rem; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: 0 4px 14px #20212320; }
 #history-edit-menu button { border: 0; min-height: 34px; text-align: left; font-size: .85rem; }
@@ -316,6 +319,7 @@ button.danger:not(:disabled):hover { background: #821d2d; }
 .model-row small[hidden] { display: none; }
 .model-download, .model-installed { width: 42px; text-align: center; }
 .model-row-actions { display: flex; align-items: center; gap: .25rem; }
+.model-recommendation { margin-inline-end: .5rem; padding: .15rem .4rem; border-radius: 5px; background: var(--surface-muted); font-size: .75rem; font-weight: 650; white-space: nowrap; }
 .model-download, .model-delete { width: 42px; padding: 0; }
 .model-delete { border-color: transparent; color: var(--text-muted); }
 .model-delete:not(:disabled):hover { color: #a02538; }
