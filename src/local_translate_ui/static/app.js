@@ -115,6 +115,7 @@ function resetResults() {
 }
 
 function startNewTranslation() {
+  setMobileSidebar(false);
   text.value = "";
   text.scrollTop = 0;
   output.value = "";
@@ -180,12 +181,14 @@ function feedback(id, message, error = false) {
   }
 }
 
-function confirmAction(title, description, action) {
+function confirmAction(title, description, action, destructive = true) {
   const dialog = $("confirm-action");
   if (dialog.open) return Promise.resolve(false);
   $("confirm-title").textContent = title;
   $("confirm-description").textContent = description;
   $("confirm-submit").textContent = action;
+  $("confirm-submit").classList.toggle("danger", destructive);
+  $("confirm-submit").classList.toggle("primary", !destructive);
   dialog.returnValue = "cancel";
   return new Promise((resolve) => {
     dialog.showModal();
@@ -199,11 +202,11 @@ function updateControls() {
   const busy = translating || selecting || Boolean(state.loading);
   const waitingForModel = modelDraft && (modelDraft.model !== modelDraft.initialModel ||
     modelDraft.device !== modelDraft.initialDevice);
-  $("translate").disabled = busy || waitingForModel || !state.active || !savedFrequentLanguage || !text.value.trim();
+  $("translate").disabled = busy || waitingForModel || !state.models.length || !savedFrequentLanguage || !text.value.trim();
   $("translate").setAttribute("aria-busy", String(translating));
   model.disabled = busy || installedModels.length < 2;
   $("stage-model").disabled = busy;
-  device.disabled = busy || !state.gpu_available;
+  device.disabled = busy || !installedModels.length || !state.gpu_available;
   $("history-list").inert = translating || deletingHistory;
   $("new-translation").disabled = $("mobile-new-translation").disabled = translating || !savedFrequentLanguage;
   for (const pane of panes.querySelectorAll(".result")) {
@@ -212,7 +215,7 @@ function updateControls() {
     pane.querySelector(".copy-result").disabled = translating || !field.value.trim();
     const complete = resultLanguages.has(pane) && Boolean(field.value.trim());
     pane.querySelector(".retranslate-control").hidden = !complete;
-    const disabled = busy || waitingForModel || !state.active || !complete;
+    const disabled = busy || waitingForModel || !state.models.length || !complete;
     pane.querySelector(".retranslate").disabled = disabled;
     pane.querySelector(".retranslate-language").disabled = disabled;
   }
@@ -231,18 +234,21 @@ const modelLabel = (id) => `PLaMo ${label(id)}`;
 
 function renderModelPicker() {
   const actualDevice = state.device || "cpu";
-  const usingGpu = (modelDraft?.device || actualDevice) === "gpu";
-  $("model-gpu-indicator").toggleAttribute("hidden", actualDevice !== "gpu" || !state.active);
+  const selected = state.loading || state.active;
+  const active = installedModels.includes(selected) ? selected : null;
+  const usingGpu = installedModels.length > 0 && (modelDraft?.device || actualDevice) === "gpu";
+  $("model-gpu-indicator").toggleAttribute("hidden", actualDevice !== "gpu" || !active);
   device.setAttribute("aria-pressed", String(usingGpu));
-  device.title = usingGpu ? "CPUに切り替える" :
+  device.title = !installedModels.length ? "モデルなし" : usingGpu ? "CPUに切り替える" :
     state.gpu_available ? "GPUに切り替える" : "GPUを利用できません";
   feedback("device-note",
+    !installedModels.length ? "" :
     modelDraft && (modelDraft.model !== modelDraft.initialModel || modelDraft.device !== modelDraft.initialDevice)
       ? "パネルを閉じると変更を適用します。"
       : state.gpu_available ? (usingGpu ? "GPUを使用中" : "CPUを使用中") : "GPU未検出");
-  const active = state.loading || state.active;
-  const preview = modelDraft?.model || active || installedModels[0];
-  const placeholder = installedModels.length ? "モデルを選択" : "モデル未取得";
+  const draft = modelDraft?.model;
+  const preview = installedModels.includes(draft) ? draft : active || installedModels[0];
+  const placeholder = installedModels.length ? "モデルを選択" : "モデルなし";
   $("model-label").textContent = active ? modelLabel(active) : placeholder;
   $("model-panel-label").textContent = preview ? modelLabel(preview) : placeholder;
   $("model-scale").hidden = !installedModels.length;
@@ -689,6 +695,10 @@ document.addEventListener("click", (event) => {
 $("translation").addEventListener("submit", async (event) => {
   event.preventDefault();
   if ($("translate").disabled) return;
+  if (!installedModels.length) {
+    await promptModelDownload();
+    return;
+  }
   translationSettings.open = false;
   modelPicker.open = false;
   translating = true;
@@ -799,6 +809,10 @@ async function saveCurrentChain() {
 }
 
 async function retranslate(pane, selectedLanguage) {
+  if (!installedModels.length) {
+    await promptModelDownload();
+    return;
+  }
   const { source: detectedLanguage, target: translatedLanguage } = resultLanguages.get(pane);
   const languages = retranslationLanguages(translatedLanguage);
   const available = (language) => Boolean(language) &&
@@ -1002,8 +1016,8 @@ activeGlossary.addEventListener("change", () => {
 form.addEventListener("change", saveTranslationOptions);
 
 function openNativeLanguage() {
-  nativeLanguage.value = savedNativeLanguage;
-  frequentLanguage.value = savedFrequentLanguage;
+  nativeLanguage.value = savedNativeLanguage || "ja";
+  frequentLanguage.value = savedFrequentLanguage || (nativeLanguage.value === "en" ? "ja" : "en");
   $("cancel-native-language").hidden = !savedFrequentLanguage;
   feedback("native-language-feedback", "");
   nativeLanguageDialog.showModal();
@@ -1076,6 +1090,32 @@ async function init() {
   loadHistory();
   loadGlossaries().catch((error) => feedback("feedback", error.message, true));
   setInterval(refresh, 1500);
+
+  if (nativeLanguageDialog.open) {
+    await new Promise((resolve) => nativeLanguageDialog.addEventListener("close", resolve, { once: true }));
+  }
+  if (!state.models.some((entry) => entry.download?.running)) await promptModelDownload();
+}
+
+async function promptModelDownload() {
+  const starterModel = state.models.find((entry) => entry.id === "0.8b");
+  if (!starterModel || installedModels.length) return;
+  if (state.models.some((entry) => entry.download?.running)) {
+    openModelManager();
+    return;
+  }
+  if (!(await confirmAction(`翻訳用モデルをダウンロード（${starterModel.size}GB）`,
+    "最も小さい翻訳用モデルをブラウザに保存します。\n保存したモデルは「モデル管理」から削除できます。",
+    "ダウンロード", false))) return;
+
+  manager.showModal();
+  feedback("download-feedback", "");
+  try {
+    await api("models/0.8b/download", "PUT");
+    await refresh();
+  } catch (error) {
+    feedback("download-feedback", error.message, true);
+  }
 }
 
 init();

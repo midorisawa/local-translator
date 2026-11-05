@@ -242,6 +242,7 @@ dialog {
   border-radius: 18px;
   color: inherit;
 }
+dialog:focus-visible { outline: none; }
 dialog::backdrop { background: #0006; }
 #native-language-dialog { width: min(28rem, calc(100% - 2rem)); }
 #native-language-title { margin: 0 0 1rem; font-size: 1.25rem; }
@@ -249,7 +250,7 @@ dialog::backdrop { background: #0006; }
 #manager-title { font-size: 1.25rem; }
 .model-catalog { margin-top: 1rem; }
 .model-catalog h3 { margin: 0; font-size: .95rem; font-weight: 600; }
-.model-catalog p { margin: .25rem 0 .65rem; color: var(--text-muted); font-size: .875rem; }
+.model-catalog p, .browser-model-storage > p { margin: .25rem 0 .65rem; color: var(--text-muted); font-size: .875rem; }
 .model-license { color: var(--text-muted); font-size: .8rem; }
 .model-license { margin: .85rem 0 0; }
 #download-feedback { margin: .4rem 0; font-size: .875rem; }
@@ -264,7 +265,7 @@ dialog::backdrop { background: #0006; }
 #native-language-feedback:empty { display: none; }
 #confirm-action { width: min(26rem, calc(100% - 2rem)); }
 #confirm-title { margin: 0; font-size: 1.125rem; }
-#confirm-description { color: var(--text-muted); overflow-wrap: anywhere; }
+#confirm-description { color: var(--text-muted); overflow-wrap: anywhere; white-space: pre-line; }
 button.danger { color: white; background: #a02538; border-color: #a02538; }
 button.danger:not(:disabled):hover { background: #821d2d; }
 .dialog-header { justify-content: space-between; }
@@ -316,12 +317,13 @@ button.danger:not(:disabled):hover { background: #821d2d; }
   .sidebar { position: static; height: auto; padding: .75rem 1rem; border-right: 0; border-bottom: 1px solid var(--border); }
   .sidebar-history { margin-top: .75rem; }
   #history-list { max-height: 10rem; }
-  .brand { margin: 0 0 .4rem; }
-  .sidebar-nav button { min-height: 36px; padding: .25rem .5rem; font-size: .875rem; }
+  .brand { margin: 0 0 .4rem; font-size: 1.25rem; }
+  .sidebar-nav button { min-height: 36px; padding: .25rem .5rem; font-size: 1rem; }
+  .sidebar-history h2, #history-feedback, #history-edit-menu button, .history-entry button { font-size: .9375rem; }
   #mobile-sidebar-toggle, #mobile-new-translation { position: absolute; top: .75rem; left: 1rem; z-index: 12; display: grid; place-items: center; width: 42px; padding: 0; border: 0; background: transparent; }
   #mobile-new-translation { left: calc(1.25rem + 42px); }
   #mobile-sidebar-toggle svg, #mobile-new-translation svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-  .sidebar-nav #new-translation { display: none; }
+  #mobile-sidebar-toggle[aria-expanded="true"] ~ #mobile-new-translation { display: none; }
   .app-layout:has(#mobile-sidebar-toggle[aria-expanded="true"])::before {
     content: "";
     position: fixed;
