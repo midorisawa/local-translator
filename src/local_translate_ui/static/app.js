@@ -32,6 +32,26 @@ let selectedGlossaryIds = new Set();
 const activeGlossary = $("active-glossary");
 let editingGlossaryId = "";
 const translationSettings = activeGlossary.closest("details");
+const settingsPanel = translationSettings.querySelector(".settings-panel");
+const settingsTrigger = translationSettings.querySelector("summary");
+
+function positionSettingsPanel() {
+  if (!translationSettings.open) return;
+  const rect = settingsTrigger.getBoundingClientRect();
+  const width = Math.min(256, window.innerWidth - 24);
+  const above = rect.top - 18;
+  const below = window.innerHeight - rect.bottom - 18;
+  settingsPanel.style.width = `${width}px`;
+  const openAbove = above >= settingsPanel.scrollHeight || above >= below;
+  settingsPanel.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`;
+  settingsPanel.style.top = openAbove ? "auto" : `${rect.bottom + 6}px`;
+  settingsPanel.style.bottom = openAbove ? `${window.innerHeight - rect.top + 6}px` : "auto";
+  settingsPanel.style.maxHeight = `${Math.max(0, openAbove ? above : below)}px`;
+}
+
+translationSettings.addEventListener("toggle", positionSettingsPanel);
+window.addEventListener("resize", positionSettingsPanel);
+window.addEventListener("scroll", positionSettingsPanel, true);
 let state = { models: [] };
 let translating = false;
 let selecting = false;
