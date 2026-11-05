@@ -1,6 +1,7 @@
 import argparse
 import html
 import shutil
+from hashlib import sha256
 from pathlib import Path
 
 from language_assets import package_languages
@@ -36,6 +37,10 @@ shutil.copyfile(args.build / "llama-license.txt", runtime / "llama-license.txt")
 package_languages(static)
 
 index = (source / "index.html").read_text(encoding="utf-8")
+for filename in ("app.js", "styles.css"):
+    version = sha256((static / filename).read_bytes()).hexdigest()[:12]
+    url = f"./static/{filename}"
+    index = index.replace(f'"{url}"', f'"{url}?v={version}"')
 mode = f'<meta name="plamo-webgpu" content="{html.escape(args.model_url, quote=True)}">'
 index = index.replace("</head>", f"  {mode}\n</head>", 1)
 (args.output / "index.html").write_text(index, encoding="utf-8")
