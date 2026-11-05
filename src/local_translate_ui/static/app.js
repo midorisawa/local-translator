@@ -898,6 +898,9 @@ async function retranslate(pane, selectedLanguage) {
     const started = performance.now();
     const result = await translateStream({
       text: original, source: translatedLanguage, target: destination,
+      context: $("context").value,
+      glossary: selectedTerms(),
+      form: destination === "ja" ? form.value : "",
     }, (fragment) => updateStreamText(field, field.value + fragment));
     updateStreamText(field, result.text);
     setResultLanguages(next, result);
