@@ -46,29 +46,6 @@ uv run python -m http.server 8876 --bind 127.0.0.1 --directory .local/webgpu-sit
 
 ブラウザーで[http://127.0.0.1:8876/](http://127.0.0.1:8876/)を開き、母語と翻訳先言語を選択して翻訳を実行してください。
 
-## Cloudflare Workersでの配信
-
-上記の手順で生成した`.local/webgpu-site`をWorkers Static Assetsで配信できます。初回は`wrangler.jsonc.template`を`wrangler.jsonc`にコピーします。テンプレートの公開先はCloudflareアカウントの`workers.dev`サブドメインです。Worker名やルートを変更する場合は、Git管理対象外の`wrangler.jsonc`を編集します。
-
-### ローカルプレビュー
-
-```powershell
-if (-not (Test-Path -LiteralPath wrangler.jsonc)) {
-    Copy-Item -LiteralPath wrangler.jsonc.template -Destination wrangler.jsonc
-}
-fnm exec --using 24.22.1 cmd.exe /d /c "pnpm.cmd dlx wrangler@4.153.0 dev --local"
-```
-
-起動後、[http://localhost:8787/](http://localhost:8787/)で動作を確認できます。
-
-### 本番デプロイ
-
-CloudflareアカウントでWranglerにログインし、以下を実行します。公開URLはデプロイ時に表示されます。
-
-```powershell
-fnm exec --using 24.22.1 cmd.exe /d /c "pnpm.cmd dlx wrangler@4.153.0 deploy"
-```
-
 ## ライセンス
 
 - アプリケーションコード: [MITライセンス](LICENSE)
