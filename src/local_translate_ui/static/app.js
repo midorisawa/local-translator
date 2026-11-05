@@ -1,4 +1,39 @@
 const $ = (id) => document.getElementById(id);
+const systemTheme = matchMedia("(prefers-color-scheme: dark)");
+const themeToggle = $("theme-toggle");
+const themeKey = "plamo.theme";
+let theme;
+try {
+  theme = localStorage.getItem(themeKey);
+} catch {
+  // 保存済みの設定を読み込めない場合は端末の設定を使う
+}
+
+function updateTheme() {
+  const manual = theme === "dark" || theme === "light";
+  const dark = manual ? theme === "dark" : systemTheme.matches;
+  if (manual) document.documentElement.dataset.theme = theme;
+  themeToggle.setAttribute("aria-pressed", String(dark));
+  themeToggle.title = dark ? "ライトモードに切り替える" : "ダークモードに切り替える";
+  if (manual) {
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+      meta.content = dark ? "#171719" : "#ffffff";
+    }
+  }
+}
+
+themeToggle.addEventListener("click", () => {
+  theme = themeToggle.getAttribute("aria-pressed") === "true" ? "light" : "dark";
+  updateTheme();
+  try {
+    localStorage.setItem(themeKey, theme);
+  } catch {
+    // 保存できない場合も現在のページには反映する
+  }
+});
+systemTheme.addEventListener("change", updateTheme);
+updateTheme();
+
 const model = $("model");
 const device = $("device");
 const modelPicker = $("model-picker");
