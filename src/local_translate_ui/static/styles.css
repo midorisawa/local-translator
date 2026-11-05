@@ -185,6 +185,7 @@ summary { cursor: pointer; border-radius: var(--control-radius); }
   color: white;
   box-shadow: 0 2px 8px #0003;
   font: 600 .75rem/1.4 system-ui, sans-serif;
+  white-space: nowrap;
   pointer-events: none;
 }
 @media (hover: hover) {
