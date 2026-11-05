@@ -1,3 +1,5 @@
+import { t } from "./i18n.js";
+
 export const modelSizes = { "0.8b": 0.57, "2b": 1.81, "8b": 5.28, "31b": 19.53 };
 export const modelFilename = (id) => `plamo-3-translate-${id}-Q4_K_M.gguf`;
 export const modelUrl = (id, override) => id === "0.8b" && override
@@ -46,7 +48,7 @@ export async function saveModel(cache, id, url, stream, signal) {
 
 export async function downloadModel(cache, id, url, progress, signal) {
   const response = await fetch(url, { signal, cache: "no-store" });
-  if (!response.ok || !response.body) throw new Error("モデルをダウンロードできませんでした。");
+  if (!response.ok || !response.body) throw new Error(t("モデルをダウンロードできませんでした。"));
   progress.total = Number(response.headers.get("content-length")) || 0;
   const stream = response.body.pipeThrough(new TransformStream({
     transform(chunk, controller) {

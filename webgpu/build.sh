@@ -16,4 +16,5 @@ done
 
 source=src/local_translate_ui/static
 cp "$source"/*.js "$source"/*.css "$site/static/"
+cp -R "$source/locales" "$site/static/"
 cp "$source/index.html" LICENSE "$site/"

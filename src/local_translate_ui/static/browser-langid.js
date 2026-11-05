@@ -1,9 +1,11 @@
+import { t } from "./i18n.js";
+
 let classifier;
 
 async function loadClassifier() {
   const metadata = await fetch(new URL("./langid.json", import.meta.url));
   const response = await fetch(new URL("./langid.bin.gz", import.meta.url));
-  if (!metadata.ok || !response.ok) throw new Error("言語判定データを取得できませんでした。");
+  if (!metadata.ok || !response.ok) throw new Error(t("言語判定データを取得できませんでした。"));
   const { classes, transitions, states } = await metadata.json();
   const buffer = await new Response(response.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
   const moves = new Uint32Array(buffer, 0, transitions);

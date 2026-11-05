@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 import { deleteSavedModel, downloadModel, hasGpu, modelCache, modelFilename, modelSizes, modelUrl, savedModel, saveModel } from "./browser-models.js";
 import { recordApi } from "./browser-records.js";
 import { resetRuntime, runtimeDevice } from "./webgpu.js";
@@ -38,8 +39,8 @@ function startDownload(cache, id) {
   const entry = { running: true, received: 0, total: 0, error: null };
   progress.set(id, entry);
   const done = downloadModel(cache, id, urlFor(id), entry, controller.signal).catch(() => {
-    entry.error = controller.signal.aborted ? "ダウンロードを中止しました。" :
-      "モデルを保存できませんでした。通信とブラウザーの空き容量を確認してください。";
+    entry.error = controller.signal.aborted ? t("ダウンロードを中止しました。") :
+      t("モデルを保存できませんでした。通信とブラウザーの空き容量を確認してください。");
   }).finally(() => {
     entry.running = false;
     jobs.delete(id);
@@ -53,10 +54,10 @@ async function getBlob(model, onStatus) {
   const read = async () => await savedModel(model) ?? await (await cache.match(urlFor(model)))?.blob();
   let saved = await read();
   if (!saved) {
-    onStatus(`PLaMo ${model.toUpperCase()}のモデルを取得中…`);
+    onStatus(t("PLaMo {0}のモデルを取得中…", model.toUpperCase()));
     await startDownload(cache, model);
     saved = await read();
-    if (!saved) throw new Error(progress.get(model)?.error || "保存済みモデルを読み込めませんでした。");
+    if (!saved) throw new Error(progress.get(model)?.error || t("保存済みモデルを読み込めませんでした。"));
   }
   return saved;
 }
@@ -69,9 +70,9 @@ export async function translationModel() {
 export async function importModel(file) {
   const id = Object.keys(modelSizes).find((key) => modelFilename(key) === file.name);
   if (!id || await file.slice(0, 4).text() !== "GGUF") {
-    throw new Error("対応するPLaMo 3 TranslateのQ4_K_M GGUFファイルを選んでください。");
+    throw new Error(t("対応するPLaMo 3 TranslateのQ4_K_M GGUFファイルを選んでください。"));
   }
-  if (jobs.has(id)) throw new Error("ダウンロードが終わってから取り込んでください。");
+  if (jobs.has(id)) throw new Error(t("ダウンロードが終わってから取り込んでください。"));
   const cache = await modelCache();
   await saveModel(cache, id, urlFor(id), file.stream());
   resetRuntime();
@@ -82,7 +83,7 @@ export async function browserApi(path, method, body) {
   if (resource === "history" || resource === "glossaries") return recordApi(path, method, body);
   if (resource === "languages") {
     const response = await fetch(new URL("./languages.json", import.meta.url));
-    if (!response.ok) throw new Error("言語一覧を取得できませんでした。");
+    if (!response.ok) throw new Error(t("言語一覧を取得できませんでした。"));
     return response.json();
   }
   const cache = await modelCache();
@@ -107,7 +108,7 @@ export async function browserApi(path, method, body) {
       return;
     }
     if (action === "select") {
-      if (id !== model && !installed.includes(id)) throw new Error("先にモデルをダウンロードしてください。");
+      if (id !== model && !installed.includes(id)) throw new Error(t("先にモデルをダウンロードしてください。"));
       const nextDevice = new URLSearchParams(path.split("?")[1]).get("device") || device;
       select(id, nextDevice);
       return;
@@ -122,5 +123,5 @@ export async function browserApi(path, method, body) {
       return;
     }
   }
-  throw new Error("この操作を実行できません。");
+  throw new Error(t("この操作を実行できません。"));
 }

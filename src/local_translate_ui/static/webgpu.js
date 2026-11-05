@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 import { detectLanguage } from "./browser-langid.js";
 
 const tag = "<|plamo:tag|>";
@@ -18,16 +19,16 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
   const terms = body.glossary || [];
   const inputs = [body.text, body.context, ...terms.flatMap(({ source, target }) => [source, target])];
   if (inputs.some((text) => text?.includes("<|plamo:") || text?.includes("\0"))) {
-    throw new Error("入力にPLaMoの制御トークンやNUL文字を含めることはできません。");
+    throw new Error(t("入力にPLaMoの制御トークンやNUL文字を含めることはできません。"));
   }
   const automatic = body.source === "auto";
   const detected = automatic ? await detectLanguage(body.text) : body.source;
   const source = detected === "zh" ? "zh-hans" : detected;
   const native = source === body.target || (detected === "zh" && body.target === "zh-hant");
   const target = body.frequent_language && native ? body.frequent_language : body.target;
-  if (body.source === target) throw new Error("翻訳元と翻訳先に異なる言語を選んでください。");
+  if (body.source === target) throw new Error(t("翻訳元と翻訳先に異なる言語を選んでください。"));
   if (body.form && target !== "ja" && !body.frequent_language) {
-    throw new Error("文体を指定できるのは日本語への翻訳時です。");
+    throw new Error(t("文体を指定できるのは日本語への翻訳時です。"));
   }
 
   const context = body.context?.trim() ? `${tag}context${msg}${body.context}` : "";
@@ -48,7 +49,7 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
       resetRuntime();
       reject(new Error(message));
     }
-    worker.onerror = () => fail("ブラウザーの推論ランタイムを起動できませんでした。");
+    worker.onerror = () => fail(t("ブラウザーの推論ランタイムを起動できませんでした。"));
     worker.onmessage = ({ data }) => {
       switch (data.type) {
         case "status": onStatus(data.text); break;

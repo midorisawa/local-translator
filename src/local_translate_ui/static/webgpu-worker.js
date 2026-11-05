@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 import { hasGpu } from "./browser-models.js";
 let runtime;
 function status(text) {
@@ -16,7 +17,7 @@ async function loadRuntime(blob, gpu, model) {
   try {
     const gpuLayers = model === "31b" ? 24 : -1;
     if (await call("load_model", ["number"], [gpuLayers]) !== 0) {
-      throw new Error("モデルを読み込めませんでした。");
+      throw new Error(t("モデルを読み込めませんでした。"));
     }
   } finally {
     module.FS.unmount("/model");
@@ -29,7 +30,7 @@ async function load(blob, model, device) {
   if (device === "gpu") {
     try {
       if (await hasGpu()) {
-        status("WebGPUにモデルを読み込み中…");
+        status(t("WebGPUにモデルを読み込み中…"));
         return await loadRuntime(blob, true, model);
       }
     } catch (error) {
@@ -37,19 +38,19 @@ async function load(blob, model, device) {
     }
   }
   if (model === "31b") {
-    throw new Error("31BはCPU用のブラウザーメモリ上限を超えます。WebGPUと十分なメモリを備えた端末で試してください。");
+    throw new Error(t("31BはCPU用のブラウザーメモリ上限を超えます。WebGPUと十分なメモリを備えた端末で試してください。"));
   }
-  status("CPUにモデルを読み込み中…");
+  status(t("CPUにモデルを読み込み中…"));
   return loadRuntime(blob, false, model);
 }
 
 self.onmessage = async ({ data: { prompt, blob, model, device } }) => {
   try {
     runtime ??= await load(blob, model, device);
-    self.postMessage({ type: "status", text: "ブラウザー内で翻訳中…" });
+    self.postMessage({ type: "status", text: t("ブラウザー内で翻訳中…") });
     const space = await runtime.call("start_translation", ["string"], [prompt]);
-    if (space === -2) throw new Error("入力が長すぎます。原文を分けて翻訳してください。");
-    if (space < 0) throw new Error("原文を処理できませんでした。");
+    if (space === -2) throw new Error(t("入力が長すぎます。原文を分けて翻訳してください。"));
+    if (space < 0) throw new Error(t("原文を処理できませんでした。"));
 
     const decoder = new TextDecoder();
     const offset = Number(runtime.module._token_bytes());
@@ -57,7 +58,7 @@ self.onmessage = async ({ data: { prompt, blob, model, device } }) => {
     let ended = false;
     for (let index = 0; index < limit; index++) {
       const length = await runtime.call("next_token");
-      if (length < 0) throw new Error("訳文の生成に失敗しました。");
+      if (length < 0) throw new Error(t("訳文の生成に失敗しました。"));
       if (length === 0) {
         ended = true;
         break;

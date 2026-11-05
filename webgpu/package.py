@@ -21,10 +21,11 @@ static = args.output / "static"
 runtime = static / "runtime"
 runtime.mkdir(parents=True, exist_ok=True)
 for filename in (
-    "app.js", "styles.css", "webgpu.js", "webgpu-worker.js",
+    "app.js", "i18n.js", "styles.css", "webgpu.js", "webgpu-worker.js",
     "browser-api.js", "browser-models.js", "browser-records.js", "browser-langid.js",
 ):
     shutil.copyfile(source / filename, static / filename)
+shutil.copytree(source / "locales", static / "locales", dirs_exist_ok=True)
 for build, destination in (
     (args.build, runtime), (args.cpu_build, runtime / "cpu"),
     (args.gpu64_build, runtime / "gpu64"), (args.cpu64_build, runtime / "cpu64"),

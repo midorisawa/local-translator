@@ -1,3 +1,7 @@
+import { localizePage, t, uiLocale } from "./i18n.js";
+
+localizePage();
+
 const $ = (id) => document.getElementById(id);
 const systemTheme = matchMedia("(prefers-color-scheme: dark)");
 const themeToggle = $("theme-toggle");
@@ -14,7 +18,7 @@ function updateTheme() {
   const dark = manual ? theme === "dark" : systemTheme.matches;
   if (manual) document.documentElement.dataset.theme = theme;
   themeToggle.setAttribute("aria-pressed", String(dark));
-  themeToggle.title = dark ? "ライトモードに切り替える" : "ダークモードに切り替える";
+  themeToggle.title = dark ? t("ライトモードに切り替える") : t("ダークモードに切り替える");
   if (manual) {
     for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
       meta.content = dark ? "#171719" : "#ffffff";
@@ -114,7 +118,7 @@ singlePane.addEventListener("change", () => showPanes(firstVisiblePane, "instant
 const mobileSidebarToggle = $("mobile-sidebar-toggle");
 function setMobileSidebar(expanded) {
   mobileSidebarToggle.setAttribute("aria-expanded", String(expanded));
-  mobileSidebarToggle.setAttribute("aria-label", expanded ? "サイドバーを閉じる" : "サイドバーを開く");
+  mobileSidebarToggle.setAttribute("aria-label", expanded ? t("サイドバーを閉じる") : t("サイドバーを開く"));
 }
 
 mobileSidebarToggle.addEventListener("click", () => {
@@ -147,14 +151,16 @@ function showPanes(index, behavior = "auto") {
   const last = lastPanePosition();
   firstVisiblePane = Math.min(Math.max(index, 0), last);
   const paneWidth = panes.firstElementChild.getBoundingClientRect().width;
-  panes.scrollTo({ left: paneWidth * firstVisiblePane, behavior });
+  const direction = document.documentElement.dir === "rtl" ? -1 : 1;
+  panes.scrollTo({ left: direction * paneWidth * firstVisiblePane, behavior });
   updatePaneNavigation();
 }
 
 panes.addEventListener("scrollend", () => {
   const paneWidth = panes.firstElementChild.getBoundingClientRect().width;
   if (!paneWidth) return;
-  firstVisiblePane = Math.min(lastPanePosition(), Math.round(panes.scrollLeft / paneWidth));
+  const direction = document.documentElement.dir === "rtl" ? -1 : 1;
+  firstVisiblePane = Math.max(0, Math.min(lastPanePosition(), Math.round(direction * panes.scrollLeft / paneWidth)));
   updatePaneNavigation();
 });
 $("pane-previous").addEventListener("click", () => showPanes(firstVisiblePane - 1));
@@ -208,7 +214,7 @@ async function translateStream(body, onFragment) {
       }));
       result.history_id = id;
     } catch {
-      result.history_error = "訳文は取得できましたが、履歴を保存できませんでした。";
+      result.history_error = t("訳文は取得できましたが、履歴を保存できませんでした。");
     }
   }
   return result;
@@ -239,7 +245,8 @@ function feedback(id, message, error = false) {
 function confirmAction(title, description, action, destructive = true) {
   const dialog = $("confirm-action");
   if (dialog.open) return Promise.resolve(false);
-  $("confirm-title").textContent = title;
+  const heading = $("confirm-title");
+  heading.textContent = title;
   $("confirm-description").textContent = description;
   $("confirm-submit").textContent = action;
   $("confirm-submit").classList.toggle("danger", destructive);
@@ -247,6 +254,7 @@ function confirmAction(title, description, action, destructive = true) {
   dialog.returnValue = "cancel";
   return new Promise((resolve) => {
     dialog.showModal();
+    if (!destructive) heading.focus();
     dialog.addEventListener("close", () => resolve(dialog.returnValue === "confirm"), { once: true });
   });
 }
@@ -294,16 +302,16 @@ function renderModelPicker() {
   const usingGpu = installedModels.length > 0 && (modelDraft?.device || actualDevice) === "gpu";
   $("model-gpu-indicator").toggleAttribute("hidden", actualDevice !== "gpu" || !active);
   device.setAttribute("aria-pressed", String(usingGpu));
-  device.title = !installedModels.length ? "モデルなし" : usingGpu ? "CPUに切り替える" :
-    state.gpu_available ? "GPUに切り替える" : "GPUを利用できません";
+  device.title = !installedModels.length ? t("モデルなし") : usingGpu ? t("CPUに切り替える") :
+    state.gpu_available ? t("GPUに切り替える") : t("GPUを利用できません");
   feedback("device-note",
     !installedModels.length ? "" :
     modelDraft && (modelDraft.model !== modelDraft.initialModel || modelDraft.device !== modelDraft.initialDevice)
-      ? "パネルを閉じると変更を適用します。"
-      : state.gpu_available ? (usingGpu ? "GPUを使用中" : "CPUを使用中") : "GPU未検出");
+      ? t("パネルを閉じると変更を適用します。")
+      : state.gpu_available ? (usingGpu ? t("GPUを使用中") : t("CPUを使用中")) : t("GPU未検出"));
   const draft = modelDraft?.model;
   const preview = installedModels.includes(draft) ? draft : active || installedModels[0];
-  const placeholder = installedModels.length ? "モデルを選択" : "モデルなし";
+  const placeholder = installedModels.length ? t("モデルを選択") : t("モデルなし");
   $("model-label").textContent = active ? modelLabel(active) : placeholder;
   $("model-panel-label").textContent = preview ? modelLabel(preview) : placeholder;
   $("model-scale").hidden = !installedModels.length;
@@ -338,10 +346,10 @@ function renderModels() {
       const title = document.createElement("strong");
       title.textContent = `PLaMo Translate ${label(entry.id)}`;
       const size = document.createElement("span");
-      size.textContent = `約${entry.size}GB`;
+      size.textContent = t("約{0}GB", entry.size);
       const status = document.createElement("small");
       const progress = document.createElement("progress");
-      progress.setAttribute("aria-label", `${label(entry.id)}のダウンロード進捗`);
+      progress.setAttribute("aria-label", t("{0}のダウンロード進捗", label(entry.id)));
       const button = document.createElement("button");
       button.type = "button";
       button.className = "model-download";
@@ -349,24 +357,24 @@ function renderModels() {
       const check = document.createElement("span");
       check.className = "model-installed";
       check.setAttribute("role", "img");
-      check.setAttribute("aria-label", "取得済み");
+      check.setAttribute("aria-label", t("取得済み"));
       check.textContent = "✓";
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "model-delete";
-      remove.title = "削除";
-      remove.setAttribute("aria-label", `PLaMo Translate ${label(entry.id)}を削除`);
+      remove.title = t("削除");
+      remove.setAttribute("aria-label", t("PLaMo Translate {0}を削除", label(entry.id)));
       remove.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v6m4-6v6"/></svg>';
       remove.addEventListener("click", async () => {
         const name = `PLaMo Translate ${label(entry.id)}`;
-        if (!(await confirmAction("モデルを削除しますか？",
-          `${name}を保存先から削除します。使うには再ダウンロードが必要です。`, "削除する"))) return;
+        if (!(await confirmAction(t("モデルを削除しますか？"),
+          t("{0}を保存先から削除します。使うには再ダウンロードが必要です。", name), t("削除する")))) return;
         if ((translating || selecting)) return;
         remove.disabled = true;
         try {
           await api(`models/${entry.id}`, "DELETE");
           await refresh();
-          feedback("download-feedback", `${name}を削除しました。`);
+          feedback("download-feedback", t("{0}を削除しました。", name));
         } catch (error) {
           feedback("download-feedback", error.message, true);
         } finally {
@@ -376,8 +384,8 @@ function renderModels() {
       button.addEventListener("click", async () => {
         if (selecting) return;
         const running = button.dataset.running === "true";
-        if (running && !(await confirmAction("ダウンロードを中止しますか？",
-          `${label(entry.id)}の途中まで取得したデータを削除します。`, "中止する"))) return;
+        if (running && !(await confirmAction(t("ダウンロードを中止しますか？"),
+          t("{0}の途中まで取得したデータを削除します。", label(entry.id)), t("中止する")))) return;
         button.disabled = true;
         feedback("download-feedback", "");
         try {
@@ -397,7 +405,7 @@ function renderModels() {
       actions.className = "model-row-actions";
       const recommendation = document.createElement("span");
       recommendation.className = "model-recommendation";
-      recommendation.textContent = "おすすめ";
+      recommendation.textContent = t("おすすめ");
       actions.append(check, remove, recommendation, button);
       row.append(details, actions);
       $("model-list").append(row);
@@ -408,7 +416,7 @@ function renderModels() {
     const download = entry.download;
     const running = Boolean(download?.running);
     const received = Math.floor((download?.received || 0) / 1e6);
-    const message = running ? `ダウンロード中 · ${received}MB` : download?.error || "";
+    const message = running ? t("ダウンロード中 · {0}MB", received) : download?.error || "";
     status.textContent = message;
     status.hidden = !message;
     status.classList.toggle("error", Boolean(download?.error));
@@ -424,9 +432,9 @@ function renderModels() {
     remove.hidden = !entry.installed;
     button.disabled = false;
     button.dataset.running = String(running);
-    const action = running ? "ダウンロードを中止" : download?.error ? "ダウンロードを再試行" : "ダウンロード";
+    const action = running ? t("ダウンロードを中止") : download?.error ? t("ダウンロードを再試行") : t("ダウンロード");
     button.title = action;
-    button.setAttribute("aria-label", `${modelLabel(entry.id)}の${action}`);
+    button.setAttribute("aria-label", t("{0}の{1}", modelLabel(entry.id), action));
     button.querySelector("path").setAttribute("d", running ? "M7 7h10v10H7z" : "M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4");
   }
   updateControls();
@@ -439,7 +447,7 @@ async function refresh() {
     state = await api("models");
     renderModels();
   } catch {
-    feedback("status", "モデルの状態を取得できませんでした。", true);
+    feedback("status", t("モデルの状態を取得できませんでした。"), true);
   } finally {
     refreshing = false;
   }
@@ -458,12 +466,12 @@ $("import-model").addEventListener("change", async ({ currentTarget }) => {
   selecting = true;
   updateControls();
   chooseModelFile.disabled = true;
-  feedback("download-feedback", "モデルを取り込み中…");
+  feedback("download-feedback", t("モデルを取り込み中…"));
   try {
     const { importModel } = await import("./browser-api.js");
     await importModel(file);
     await refresh();
-    feedback("download-feedback", "モデルを取り込みました。");
+    feedback("download-feedback", t("モデルを取り込みました。"));
   } catch (error) {
     feedback("download-feedback", error.message, true);
   } finally {
@@ -533,7 +541,7 @@ function glossary() {
     const target = translation.value.trim();
     if (!source && !target) continue;
     if (!source || !target) {
-      throw new Error(`用語集の${index + 1}行目に原語と訳語を入力してください。`);
+      throw new Error(t("用語集の{0}行目に原語と訳語を入力してください。", index + 1));
     }
     terms.push({ source, target, enabled: enabled.checked });
   }
@@ -548,8 +556,8 @@ function addGlossaryRow(term = {}) {
   enabled.checked = term.enabled !== false;
   row.querySelector("button").addEventListener("click", async () => {
     if ((original.value.trim() || translation.value.trim()) &&
-        !(await confirmAction("この用語を削除しますか？",
-          "入力した原語と訳語を編集欄から取り除きます。", "削除する"))) return;
+        !(await confirmAction(t("この用語を削除しますか？"),
+          t("入力した原語と訳語を編集欄から取り除きます。"), t("削除する")))) return;
     row.remove();
     updateGlossaryRows();
   });
@@ -559,7 +567,7 @@ function addGlossaryRow(term = {}) {
 
 function updateGlossaryRows() {
   const count = $("glossary").childElementCount;
-  $("glossary-term-count").textContent = `${count} / 20行`;
+  $("glossary-term-count").textContent = t("{0} / 20行", count);
   $("add-term").disabled = count >= 20;
 }
 
@@ -574,7 +582,7 @@ function saveTranslationOptions() {
       form: form.value,
     }));
   } catch {
-    feedback("feedback", "翻訳設定を保存できませんでした。", true);
+    feedback("feedback", t("翻訳設定を保存できませんでした。"), true);
   }
 }
 
@@ -585,12 +593,12 @@ function selectedTerms() {
       if (term.enabled === false) continue;
       const existing = terms.get(term.source);
       if (existing && existing.target !== term.target) {
-        throw new Error(`「${term.source}」に異なる訳語が指定されています。適用する用語集を見直してください。`);
+        throw new Error(t("「{0}」に異なる訳語が指定されています。適用する用語集を見直してください。", term.source));
       }
       terms.set(term.source, term);
     }
   }
-  if (terms.size > 20) throw new Error("適用する用語は合計20組までです。用語集の選択を減らしてください。");
+  if (terms.size > 20) throw new Error(t("適用する用語は合計20組までです。用語集の選択を減らしてください。"));
   return Array.from(terms.values());
 }
 
@@ -599,7 +607,7 @@ function renderGlossaryOptions() {
   renderGlossaryPresets();
   const choices = $("glossary-choices");
   choices.replaceChildren();
-  if (!glossaryPresets.length) choices.textContent = "保存した用語集はここに表示されます。";
+  if (!glossaryPresets.length) choices.textContent = t("保存した用語集はここに表示されます。");
   for (const preset of glossaryPresets) {
     const label = document.createElement("label");
     const checkbox = document.createElement("input");
@@ -615,7 +623,7 @@ function renderGlossaryOptions() {
 function renderGlossaryPresets() {
   const list = $("glossary-presets");
   list.replaceChildren();
-  if (!glossaryPresets.length) list.textContent = "保存済みの用語集はありません。";
+  if (!glossaryPresets.length) list.textContent = t("保存済みの用語集はありません。");
   for (const preset of glossaryPresets) {
     const button = document.createElement("button");
     const name = document.createElement("span");
@@ -623,7 +631,7 @@ function renderGlossaryPresets() {
     button.type = "button";
     button.setAttribute("aria-pressed", String(preset.id === editingGlossaryId));
     name.textContent = preset.name;
-    count.textContent = `${preset.terms.filter((term) => term.enabled !== false).length}件が有効`;
+    count.textContent = t("{0}件が有効", preset.terms.filter((term) => term.enabled !== false).length);
     button.append(name, count);
     button.addEventListener("click", () => {
       if (editingGlossaryId !== preset.id) openGlossaryEditor(preset.id);
@@ -636,7 +644,7 @@ function openGlossaryEditor(id) {
   const preset = glossaryPresets.find((item) => item.id === id);
   editingGlossaryId = preset?.id || "";
   renderGlossaryPresets();
-  $("glossary-editor-title").textContent = preset ? "用語集を編集" : "新しい用語集";
+  $("glossary-editor-title").textContent = preset ? t("用語集を編集") : t("新しい用語集");
   $("glossary-name").value = preset?.name || "";
   $("glossary").replaceChildren();
   for (const term of preset?.terms || [{}]) addGlossaryRow(term);
@@ -684,7 +692,7 @@ async function changeGlossary(method, id, payload) {
     else if (selectedGlossaryIds.delete(id)) saveTranslationOptions();
     renderGlossaryOptions();
     openGlossaryEditor(method === "PUT" ? id : glossaryPresets[0]?.id);
-    feedback("glossary-feedback", method === "PUT" ? "保存しました" : "削除しました");
+    feedback("glossary-feedback", method === "PUT" ? t("保存しました") : t("削除しました"));
   } catch (error) {
     feedback("glossary-feedback", error.message, true);
   } finally {
@@ -698,7 +706,7 @@ $("glossary-form").addEventListener("submit", (event) => {
   try {
     const name = $("glossary-name").value.trim();
     const terms = glossary();
-    if (!name || !terms.length) throw new Error("名前と用語を1組以上入力してください。");
+    if (!name || !terms.length) throw new Error(t("名前と用語を1組以上入力してください。"));
     changeGlossary("PUT", editingGlossaryId || crypto.randomUUID(), { name, terms });
   } catch (error) {
     feedback("glossary-feedback", error.message, true);
@@ -706,8 +714,8 @@ $("glossary-form").addEventListener("submit", (event) => {
 });
 $("delete-glossary").addEventListener("click", async () => {
   const preset = glossaryPresets.find((item) => item.id === editingGlossaryId);
-  if (preset && await confirmAction("用語集を削除しますか？",
-    `「${preset.name}」と登録されている用語を削除します。`, "削除する")) {
+  if (preset && await confirmAction(t("用語集を削除しますか？"),
+    t("「{0}」と登録されている用語を削除します。", preset.name), t("削除する"))) {
     changeGlossary("DELETE", preset.id);
   }
 });
@@ -735,9 +743,9 @@ $("glossary-file").addEventListener("change", async (event) => {
     const imported = await api("glossaries/import", "POST", presets);
     glossaryPresets.push(...imported);
     renderGlossaryOptions();
-    feedback("glossary-feedback", `${imported.length}件の用語集を追加しました。`);
+    feedback("glossary-feedback", t("{0}件の用語集を追加しました。", imported.length));
   } catch (error) {
-    feedback("glossary-feedback", error instanceof SyntaxError ? "JSONファイルを読み込めませんでした。" : error.message, true);
+    feedback("glossary-feedback", error instanceof SyntaxError ? t("JSONファイルを読み込めませんでした。") : error.message, true);
   } finally {
     editor.inert = false;
   }
@@ -770,7 +778,7 @@ $("translation").addEventListener("submit", async (event) => {
     if (document.activeElement === text) text.blur();
     showPanes(1, "instant");
   }
-  feedback("feedback", "翻訳中…");
+  feedback("feedback", t("翻訳中…"));
   updateControls();
   try {
     const automatic = target.value === "auto";
@@ -781,12 +789,12 @@ $("translation").addEventListener("submit", async (event) => {
       ...(automatic && { frequent_language: savedFrequentLanguage }),
       context: $("context").value, glossary: terms, form: japaneseForm, save_history: true,
     }, (fragment) => updateStreamText(output, output.value + fragment));
-    firstResult.querySelector(".elapsed").textContent = `翻訳時間 ${((performance.now() - started) / 1000).toFixed(2)}秒`;
+    firstResult.querySelector(".elapsed").textContent = t("翻訳時間 {0}秒", ((performance.now() - started) / 1000).toFixed(2));
     updateStreamText(output, result.text);
     setResultLanguages(firstResult, result);
     currentHistoryId = result.history_id || null;
     const notices = [
-      result.truncated && "出力上限に達しました。原文を分けて再翻訳してください。",
+      result.truncated && t("出力上限に達しました。原文を分けて再翻訳してください。"),
       result.history_error,
     ].filter(Boolean);
     feedback("feedback", notices.join(" "), Boolean(result.history_error));
@@ -850,7 +858,7 @@ function addResultPane(previous, result) {
   field.value = result.text || "";
   const label = pane.querySelector("label");
   label.htmlFor = field.id;
-  label.textContent = "再翻訳";
+  label.textContent = t("再翻訳");
   pane.querySelector(".elapsed").textContent = "";
   previous.after(pane);
   setResultLanguages(pane, result);
@@ -881,7 +889,7 @@ async function retranslate(pane, selectedLanguage) {
   const destination = selectedLanguage || (available(detectedLanguage) ? detectedLanguage :
     pane === firstResult && available(source.value) ? source.value : "");
   if (!destination) {
-    feedback("feedback", "「再翻訳」の右にある言語ボタンから翻訳先を選んでください。", true);
+    feedback("feedback", t("「再翻訳」の右にある言語ボタンから翻訳先を選んでください。"), true);
     return;
   }
   const original = pane.querySelector("textarea").value;
@@ -892,7 +900,7 @@ async function retranslate(pane, selectedLanguage) {
   translating = true;
   showPanes(Array.from(panes.children).indexOf(next) - (singlePane.matches ? 0 : 1),
     singlePane.matches ? "instant" : "auto");
-  feedback("feedback", "再翻訳中…");
+  feedback("feedback", t("再翻訳中…"));
   updateControls();
   try {
     const started = performance.now();
@@ -904,9 +912,9 @@ async function retranslate(pane, selectedLanguage) {
     }, (fragment) => updateStreamText(field, field.value + fragment));
     updateStreamText(field, result.text);
     setResultLanguages(next, result);
-    elapsed.textContent = `翻訳時間 ${((performance.now() - started) / 1000).toFixed(2)}秒`;
+    elapsed.textContent = t("翻訳時間 {0}秒", ((performance.now() - started) / 1000).toFixed(2));
     await saveCurrentChain();
-    feedback("feedback", result.truncated ? "再翻訳が出力上限に達しました。" : "");
+    feedback("feedback", result.truncated ? t("再翻訳が出力上限に達しました。") : "");
   } catch (error) {
     if (!field.value) {
       next.remove();
@@ -943,7 +951,7 @@ function restoreHistory(entry) {
     previous = addResultPane(previous, result);
   }
   showPanes(0, "instant");
-  feedback("feedback", entry.truncated ? "この訳文は出力上限で途中まで表示されています。" : "");
+  feedback("feedback", entry.truncated ? t("この訳文は出力上限で途中まで表示されています。") : "");
   updateControls();
 }
 
@@ -953,7 +961,7 @@ function updateHistoryEditing() {
   $("history-list").toggleAttribute("data-editing", editingHistory);
   $("edit-history").setAttribute("aria-pressed", String(editingHistory));
   $("edit-history").setAttribute("aria-expanded", String(!menu.hidden));
-  $("edit-history").title = editingHistory ? "履歴の編集メニュー" : "履歴を編集";
+  $("edit-history").title = editingHistory ? t("履歴の編集メニュー") : t("履歴を編集");
   $("edit-history").disabled = deletingHistory;
   $("delete-history").hidden = !editingHistory;
   $("delete-history").disabled = deletingHistory || !selectedHistory.size;
@@ -983,8 +991,8 @@ document.addEventListener("click", (event) => {
 });
 
 async function deleteHistory(ids) {
-  if (!ids.length || !(await confirmAction("翻訳履歴を削除しますか？",
-    `${ids.length}件の履歴を削除します。`, "削除する"))) return;
+  if (!ids.length || !(await confirmAction(t("翻訳履歴を削除しますか？"),
+    t("{0}件の履歴を削除します。", ids.length), t("削除する")))) return;
   deletingHistory = true;
   updateHistoryEditing();
   updateControls();
@@ -1011,7 +1019,7 @@ $("delete-all-history").addEventListener("click", () => {
 async function loadHistory() {
   const request = ++historyRequest;
   const list = $("history-list");
-  feedback("history-feedback", "履歴を読み込み中…");
+  feedback("history-feedback", t("履歴を読み込み中…"));
   try {
     const entries = await api("history");
     if (request !== historyRequest) return;
@@ -1020,7 +1028,7 @@ async function loadHistory() {
       if (!ids.has(id)) selectedHistory.delete(id);
     }
     list.replaceChildren();
-    feedback("history-feedback", entries.length ? "" : "翻訳履歴はありません。");
+    feedback("history-feedback", entries.length ? "" : t("翻訳履歴はありません。"));
     for (const entry of entries) {
       const row = $("history-entry").content.firstElementChild.cloneNode(true);
       const open = row.querySelector(".history-restore");
@@ -1030,7 +1038,7 @@ async function loadHistory() {
       const checkbox = row.querySelector(".history-select");
       checkbox.value = entry.id;
       checkbox.checked = selectedHistory.has(entry.id);
-      checkbox.setAttribute("aria-label", `「${title}」を選択`);
+      checkbox.setAttribute("aria-label", t("「{0}」を選択", title));
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) selectedHistory.add(entry.id);
         else selectedHistory.delete(entry.id);
@@ -1063,10 +1071,10 @@ panes.addEventListener("click", async (event) => {
   const field = pane.querySelector("textarea");
   try {
     await navigator.clipboard.writeText(field.value);
-    feedback("feedback", "訳文をコピーしました。");
+    feedback("feedback", t("訳文をコピーしました。"));
   } catch {
     field.select();
-    feedback("feedback", "自動でコピーできませんでした。選択した訳文をコピーしてください。", true);
+    feedback("feedback", t("自動でコピーできませんでした。選択した訳文をコピーしてください。"), true);
   }
 });
 
@@ -1095,14 +1103,14 @@ nativeLanguageDialog.addEventListener("cancel", (event) => {
 $("native-language-form").addEventListener("submit", (event) => {
   event.preventDefault();
   if (nativeLanguage.value === frequentLanguage.value) {
-    feedback("native-language-feedback", "よく使う言語には、自分の言語と異なる言語を選んでください。", true);
+    feedback("native-language-feedback", t("よく使う言語には、自分の言語と異なる言語を選んでください。"), true);
     return;
   }
   try {
     localStorage.setItem(nativeLanguageKey, nativeLanguage.value);
     localStorage.setItem(frequentLanguageKey, frequentLanguage.value);
   } catch {
-    feedback("native-language-feedback", "翻訳先の設定を保存できませんでした。ブラウザーのサイトデータ設定を確認してください。", true);
+    feedback("native-language-feedback", t("翻訳先の設定を保存できませんでした。ブラウザーのサイトデータ設定を確認してください。"), true);
     return;
   }
   savedNativeLanguage = nativeLanguage.value;
@@ -1122,9 +1130,11 @@ async function init() {
   }
   try {
     const languages = await api("languages");
-    source.add(new Option("自動判定", "auto"));
-    target.add(new Option("自動切り替え", "auto"));
-    for (const [code, name] of Object.entries(languages)) {
+    source.add(new Option(t("自動判定"), "auto"));
+    target.add(new Option(t("自動切り替え"), "auto"));
+    const languageNames = new Intl.DisplayNames(uiLocale, { type: "language", fallback: "none" });
+    for (const [code, japaneseName] of Object.entries(languages)) {
+      const name = uiLocale === "ja" ? japaneseName : languageNames.of(code) ?? code;
       source.add(new Option(name, code));
       target.add(new Option(name, code));
       nativeLanguage.add(new Option(name, code));
@@ -1148,7 +1158,7 @@ async function init() {
       openNativeLanguage();
     }
   } catch {
-    feedback("feedback", "言語一覧を取得できませんでした。ページを再読み込みしてください。", true);
+    feedback("feedback", t("言語一覧を取得できませんでした。ページを再読み込みしてください。"), true);
   }
   await refresh();
   loadHistory();
@@ -1168,9 +1178,9 @@ async function promptModelDownload() {
     openModelManager();
     return;
   }
-  if (!(await confirmAction(`翻訳用モデルをダウンロード（${starterModel.size}GB）`,
-    "最も小さい翻訳用モデルをブラウザに保存します。\n保存したモデルは「モデル管理」から削除できます。",
-    "ダウンロード", false))) return;
+  if (!(await confirmAction(t("翻訳用モデルをダウンロード（{0}GB）", starterModel.size),
+    t("最も小さい翻訳用モデルをブラウザに保存します。\n保存したモデルは「モデル管理」から削除できます。"),
+    t("ダウンロード"), false))) return;
 
   manager.showModal();
   feedback("download-feedback", "");

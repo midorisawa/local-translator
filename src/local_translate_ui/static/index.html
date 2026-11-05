@@ -90,10 +90,10 @@
               <label for="text">原文</label>
               <span id="count">0 / 4000</span>
             </div>
-            <textarea id="text" maxlength="4000" placeholder="翻訳する文章を入力"></textarea>
+            <textarea id="text" dir="auto" maxlength="4000" placeholder="翻訳する文章を入力"></textarea>
             <details class="context-control">
               <summary><span class="context-add-icon" aria-hidden="true"></span>文脈を追加</summary>
-              <textarea id="context" aria-label="参考文脈" maxlength="1000" rows="2" placeholder="例：登場人物が大雨のあとに川沿いを歩いている場面です。"></textarea>
+              <textarea id="context" dir="auto" aria-label="参考文脈" maxlength="1000" rows="2" placeholder="例：登場人物が大雨のあとに川沿いを歩いている場面です。"></textarea>
             </details>
             <div class="actions source-actions">
               <details class="translation-settings">
@@ -155,7 +155,7 @@
           </section>
           <section class="pane result">
             <label for="output">訳文</label>
-            <textarea id="output" placeholder="翻訳結果がここに表示されます"></textarea>
+            <textarea id="output" dir="auto" placeholder="翻訳結果がここに表示されます"></textarea>
             <div class="actions">
               <button class="copy-result" type="button" aria-label="訳文をコピー" title="訳文をコピー" disabled>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -278,7 +278,7 @@
     <p class="model-license">モデルには<a href="https://plamo.preferredai.jp/info/plamo-community-license-ja" target="_blank" rel="noopener">PLaMoコミュニティライセンス</a>が適用されます。商用利用の場合は<a href="https://huggingface.co/pfnet/plamo-3-translate-0.8b-GGUF/blob/main/README_ja.md#ライセンス" target="_blank" rel="noopener">事前登録などの利用条件</a>を確認してください。</p>
   </dialog>
   <dialog autofocus id="confirm-action" aria-labelledby="confirm-title" aria-describedby="confirm-description" closedby="any">
-    <h2 id="confirm-title"></h2>
+    <h2 id="confirm-title" tabindex="-1"></h2>
     <p id="confirm-description"></p>
     <form method="dialog" class="actions">
       <button value="cancel">キャンセル</button>
