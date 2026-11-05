@@ -2,7 +2,7 @@ import { deleteSavedModel, downloadModel, hasGpu, modelCache, modelFilename, mod
 import { recordApi } from "./browser-records.js";
 import { resetRuntime, runtimeDevice } from "./webgpu.js";
 
-const override = document.querySelector('meta[name="plamo-webgpu"]').content;
+const override = document.querySelector('meta[name="plamo-webgpu"]')?.content ?? "";
 const jobs = new Map();
 const progress = new Map();
 const settingsKey = "plamo.browser.model";

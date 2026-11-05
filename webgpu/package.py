@@ -1,7 +1,6 @@
 import argparse
 import html
 import shutil
-from importlib.metadata import distribution
 from pathlib import Path
 
 from language_assets import package_languages
@@ -34,9 +33,6 @@ for build, destination in (
         shutil.copyfile(build / filename, destination / filename)
 shutil.copyfile(root / "LICENSE", args.output / "LICENSE")
 shutil.copyfile(args.build / "llama-license.txt", runtime / "llama-license.txt")
-langid = distribution("py3langid")
-license_file = next(path for path in langid.files if path.name == "LICENSE")
-shutil.copyfile(langid.locate_file(license_file), static / "langid-license.txt")
 package_languages(static)
 
 index = (source / "index.html").read_text(encoding="utf-8")

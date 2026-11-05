@@ -4,15 +4,16 @@ set -euo pipefail
 : "${WASM_RELEASE_URL:?Set WASM_RELEASE_URL to the versioned Wasm ZIP URL}"
 
 mkdir -p .local
-if ! command -v uv >/dev/null; then
-  curl --fail --location --retry 3 https://astral.sh/uv/0.13.4/install.sh -o .local/install-uv.sh
-  UV_INSTALL_DIR="$PWD/.local/bin" UV_NO_MODIFY_PATH=1 sh .local/install-uv.sh
-  export PATH="$PWD/.local/bin:$PATH"
-fi
+curl --fail --location --retry 3 -o .local/released-wasm.zip "$WASM_RELEASE_URL"
+site=.local/webgpu-site
+unzip -oq .local/released-wasm.zip -d "$site"
+for file in languages.json langid.json langid.bin.gz langid-license.txt runtime/llama-license.txt; do
+  if [[ ! -s "$site/static/$file" ]]; then
+    echo "Missing static/$file in the Wasm Release ZIP. Use wasm-v2 or later."
+    exit 1
+  fi
+done
 
-curl --fail --location --retry 3 -o .local/wasm-runtime.zip "$WASM_RELEASE_URL"
-uv run --locked python -m zipfile -e .local/wasm-runtime.zip .local/released-wasm
-uv run --locked python webgpu/package.py .local/released-wasm/webgpu-build .local/webgpu-site \
-  --cpu-build .local/released-wasm/cpu-build \
-  --gpu64-build .local/released-wasm/gpu64-build \
-  --cpu64-build .local/released-wasm/cpu64-build
+source=src/local_translate_ui/static
+cp "$source"/*.js "$source"/*.css "$site/static/"
+cp "$source/index.html" LICENSE "$site/"
