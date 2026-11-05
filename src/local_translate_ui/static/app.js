@@ -856,6 +856,7 @@ $("translate-language").addEventListener("click", (event) => prepareRetranslatio
 
 function addResultPane(previous, result) {
   const pane = firstResult.cloneNode(true);
+  pane.querySelector(".copy-result").classList.remove("copied");
   pane.classList.add("retranslation-result");
   const field = pane.querySelector("textarea");
   field.id = `retranslation-${++resultNumber}`;
@@ -1060,6 +1061,7 @@ async function loadHistory() {
   }
 }
 
+const copyTimers = new WeakMap();
 panes.addEventListener("click", async (event) => {
   const button = event.target.closest(".retranslate, .retranslate-language, .copy-result");
   if (!button) return;
@@ -1075,6 +1077,9 @@ panes.addEventListener("click", async (event) => {
   const field = pane.querySelector("textarea");
   try {
     await navigator.clipboard.writeText(field.value);
+    clearTimeout(copyTimers.get(button));
+    button.classList.add("copied");
+    copyTimers.set(button, setTimeout(() => button.classList.remove("copied"), 5000));
     feedback("feedback", t("訳文をコピーしました。"));
   } catch {
     field.select();

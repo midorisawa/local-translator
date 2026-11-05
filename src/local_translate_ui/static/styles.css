@@ -249,6 +249,7 @@ summary { cursor: pointer; border-radius: var(--control-radius); }
 .copy-result { display: grid; place-items: center; width: 42px; padding: 0; border: 0; background: transparent; }
 .copy-result:not(:disabled):hover { background: var(--surface-muted); }
 .copy-result svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.65; }
+.copy-result:not(.copied) .copy-check, .copy-result.copied svg:not(.copy-check) { display: none; }
 .options { display: grid; gap: .4rem; margin-top: .65rem; }
 .options textarea { border-color: var(--border); }
 #glossary-dialog { width: min(55rem, calc(100% - 2rem)); padding: 0; }
