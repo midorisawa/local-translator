@@ -1,4 +1,4 @@
-import { downloadModel, hasGpu, modelCache, modelFilename, modelSizes, modelUrl } from "./browser-models.js";
+import { deleteSavedModel, downloadModel, hasGpu, modelCache, modelFilename, modelSizes, modelUrl, savedModel, saveModel } from "./browser-models.js";
 import { recordApi } from "./browser-records.js";
 import { resetRuntime, runtimeDevice } from "./webgpu.js";
 
@@ -16,7 +16,9 @@ function settings() {
 async function selected(cache) {
   const { model, device } = settings();
   const urls = new Set((await cache.keys()).map((request) => request.url));
-  const installed = Object.keys(modelSizes).filter((key) => urls.has(urlFor(key)));
+  const installed = (await Promise.all(Object.keys(modelSizes).map(async (id) =>
+    urls.has(urlFor(id)) || await savedModel(id) ? id : null
+  ))).filter(Boolean);
   const gpu = await gpuAvailable;
   return {
     model: installed.includes(model) ? model : installed[0] || "0.8b",
@@ -35,7 +37,7 @@ function startDownload(cache, id) {
   const controller = new AbortController();
   const entry = { running: true, received: 0, total: 0, error: null };
   progress.set(id, entry);
-  const done = downloadModel(cache, urlFor(id), entry, controller.signal).catch(() => {
+  const done = downloadModel(cache, id, urlFor(id), entry, controller.signal).catch(() => {
     entry.error = controller.signal.aborted ? "ダウンロードを中止しました。" :
       "モデルを保存できませんでした。通信とブラウザーの空き容量を確認してください。";
   }).finally(() => {
@@ -48,14 +50,15 @@ function startDownload(cache, id) {
 
 async function getBlob(model, onStatus) {
   const cache = await modelCache();
-  let saved = await cache.match(urlFor(model));
+  const read = async () => await savedModel(model) ?? await (await cache.match(urlFor(model)))?.blob();
+  let saved = await read();
   if (!saved) {
     onStatus(`PLaMo ${model.toUpperCase()}のモデルを取得中…`);
     await startDownload(cache, model);
-    saved = await cache.match(urlFor(model));
+    saved = await read();
     if (!saved) throw new Error(progress.get(model)?.error || "保存済みモデルを読み込めませんでした。");
   }
-  return saved.blob();
+  return saved;
 }
 
 export async function translationModel() {
@@ -70,7 +73,7 @@ export async function importModel(file) {
   }
   if (jobs.has(id)) throw new Error("ダウンロードが終わってから取り込んでください。");
   const cache = await modelCache();
-  await cache.put(urlFor(id), new Response(file));
+  await saveModel(cache, id, urlFor(id), file.stream());
   resetRuntime();
 }
 
@@ -100,7 +103,7 @@ export async function browserApi(path, method, body) {
   }
   if (resource === "models" && Object.hasOwn(modelSizes, id)) {
     if (action === "download") {
-      if (!await cache.match(urlFor(id))) startDownload(cache, id);
+      if (!installed.includes(id)) startDownload(cache, id);
       return;
     }
     if (action === "select") {
@@ -110,6 +113,7 @@ export async function browserApi(path, method, body) {
       return;
     }
     if (method === "DELETE") {
+      await deleteSavedModel(id);
       await cache.delete(urlFor(id));
       progress.delete(id);
       if (model === id) {

@@ -5,7 +5,46 @@ export const modelUrl = (id, override) => id === "0.8b" && override
   : `https://huggingface.co/pfnet/plamo-3-translate-${id}-GGUF/resolve/main/${modelFilename(id)}`;
 export const modelCache = () => caches.open("plamo-models-v1");
 
-export async function downloadModel(cache, url, progress, signal) {
+async function modelDirectory() {
+  if (!navigator.storage?.getDirectory || !globalThis.FileSystemFileHandle?.prototype.createWritable) return null;
+  const root = await navigator.storage.getDirectory();
+  return root.getDirectoryHandle("plamo-models-v1", { create: true });
+}
+
+export async function savedModel(id) {
+  const directory = await modelDirectory();
+  if (!directory) return null;
+  try {
+    const file = await (await directory.getFileHandle(modelFilename(id))).getFile();
+    return file.size ? file : null;
+  } catch (error) {
+    if (error.name !== "NotFoundError") throw error;
+    return null;
+  }
+}
+
+export async function deleteSavedModel(id) {
+  const directory = await modelDirectory();
+  try {
+    await directory?.removeEntry(modelFilename(id));
+  } catch (error) {
+    if (error.name !== "NotFoundError") throw error;
+  }
+}
+
+export async function saveModel(cache, id, url, stream, signal) {
+  const directory = await modelDirectory();
+  signal?.throwIfAborted();
+  if (directory) {
+    const handle = await directory.getFileHandle(modelFilename(id), { create: true });
+    const writer = await handle.createWritable();
+    await stream.pipeTo(writer, { signal });
+  } else {
+    await cache.put(url, new Response(stream));
+  }
+}
+
+export async function downloadModel(cache, id, url, progress, signal) {
   const response = await fetch(url, { signal, cache: "no-store" });
   if (!response.ok || !response.body) throw new Error("モデルをダウンロードできませんでした。");
   progress.total = Number(response.headers.get("content-length")) || 0;
@@ -15,9 +54,7 @@ export async function downloadModel(cache, url, progress, signal) {
       controller.enqueue(chunk);
     },
   }));
-  const blob = await new Response(stream).blob();
-  signal.throwIfAborted();
-  await cache.put(url, new Response(blob));
+  await saveModel(cache, id, url, stream, signal);
 }
 
 export async function hasGpu() {

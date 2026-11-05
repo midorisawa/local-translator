@@ -272,7 +272,8 @@ button.danger:not(:disabled):hover { background: #821d2d; }
 .sidebar-history { display: flex; flex-direction: column; min-height: 0; margin-top: 1.4rem; }
 .history-heading { position: relative; display: flex; align-items: center; gap: .25rem; margin: 0 .25rem .4rem .65rem; }
 .sidebar-history h2 { margin: 0 auto 0 0; font-size: .8rem; color: var(--text-muted); }
-.browser-model-storage { display: grid; gap: .4rem; }
+.browser-model-storage { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; overflow-wrap: anywhere; }
+#import-model { width: 100%; min-width: 0; }
 .history-heading > button:not([hidden]) { display: grid; place-items: center; width: 30px; min-height: 30px; padding: 0; border: 0; background: transparent; color: var(--text-muted); }
 #history-edit-menu:not([hidden]) { position: absolute; top: calc(100% + .25rem); right: 0; z-index: 3; display: grid; min-width: max-content; padding: .25rem; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: 0 4px 14px #20212320; }
 #history-edit-menu button { border: 0; min-height: 34px; text-align: left; font-size: .85rem; }
@@ -316,7 +317,6 @@ button.danger:not(:disabled):hover { background: #821d2d; }
   .sidebar-history { margin-top: .75rem; }
   #history-list { max-height: 10rem; }
   .brand { margin: 0 0 .4rem; }
-  .sidebar-nav { display: flex; flex-wrap: wrap; }
   .sidebar-nav button { min-height: 36px; padding: .25rem .5rem; font-size: .875rem; }
   #mobile-sidebar-toggle, #mobile-new-translation { position: absolute; top: .75rem; left: 1rem; z-index: 12; display: grid; place-items: center; width: 42px; padding: 0; border: 0; background: transparent; }
   #mobile-new-translation { left: calc(1.25rem + 42px); }
@@ -338,6 +338,7 @@ button.danger:not(:disabled):hover { background: #821d2d; }
     padding-top: 4rem;
   }
   #mobile-sidebar-toggle[aria-expanded="false"] ~ .sidebar { display: none; }
+  .model-row-details { grid-template-columns: minmax(0, 1fr); }
   .glossary-manager { grid-template-columns: minmax(0, 1fr); }
   .glossary-navigation { border-right: 0; border-bottom: 1px solid var(--border); }
   #glossary-presets { max-height: 8rem; }
