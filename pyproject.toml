@@ -1,0 +1,16 @@
+[project]
+name = "local-translate-ui"
+version = "0.1.0"
+description = "PLaMo 3 Translateのローカル翻訳UI"
+requires-python = ">=3.13"
+dependencies = [
+    "py3langid>=0.4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[[tool.uv.index]]
+url = "https://pypi.flatt.tech/simple/"
+default = true

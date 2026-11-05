@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>ローカル翻訳UI</title>
+  <link rel="stylesheet" href="./static/styles.css">
+  <script type="module" src="./static/app.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <button id="mobile-sidebar-toggle" type="button" aria-label="サイドバーを開く" aria-expanded="false" aria-controls="app-sidebar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14"/></svg>
+    </button>
+    <button id="mobile-new-translation" type="button" aria-label="新しい翻訳" title="新しい翻訳" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-3m-9 1-3 1 1-3 8-8a2 2 0 0 1 3 3z"/></svg>
+    </button>
+    <aside id="app-sidebar" class="sidebar">
+      <a class="brand" href="./">ローカル翻訳UI</a>
+      <nav class="sidebar-nav" aria-label="翻訳ツール">
+        <button id="new-translation" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-3m-9 1-3 1 1-3 8-8a2 2 0 0 1 3 3z"/></svg>
+          新しい翻訳
+        </button>
+        <button id="manage" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5v8l-9 5-9-5V8l9-5Zm0 10 9-5M3 8l9 5v8"/></svg>
+          モデル管理
+        </button>
+        <button id="edit-native-language" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h12M9 3v3m4 0c0 5-4 9-9 11m2-7c2 3 5 5 8 6m0 5 4-9 4 9m-6-3h4"/></svg>
+          翻訳先の設定
+        </button>
+        <button id="manage-glossaries" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 0v16m3-11h7m-7 4h7"/></svg>
+          用語集の管理
+        </button>
+      </nav>
+      <section class="sidebar-history" aria-labelledby="history-title">
+        <div class="history-heading">
+          <h2 id="history-title">翻訳履歴</h2>
+          <button id="delete-history" type="button" aria-label="選択した履歴を削除" title="選択した履歴を削除" hidden disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7"/></svg>
+          </button>
+          <button id="edit-history" type="button" aria-label="履歴の編集モード" aria-pressed="false" aria-expanded="false" aria-controls="history-edit-menu" title="履歴を編集">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+          </button>
+          <div id="history-edit-menu" hidden>
+            <button id="delete-all-history" type="button">全ての履歴を削除</button>
+            <button id="close-history-edit" type="button">閉じる</button>
+          </div>
+        </div>
+        <p id="history-feedback" role="status"></p>
+        <ul id="history-list"></ul>
+        <template id="history-entry">
+          <li class="history-entry">
+            <input type="checkbox" class="history-select">
+            <button type="button" class="history-restore"></button>
+          </li>
+        </template>
+      </section>
+    </aside>
+    <main>
+    <form id="translation">
+      <select id="source" hidden></select>
+      <select id="target" hidden></select>
+      <div class="workspace">
+        <div class="pane-strip">
+          <nav id="pane-navigation" aria-label="翻訳欄の移動" hidden>
+            <button id="pane-previous" type="button" aria-label="左の欄へ">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+            </button>
+            <button id="pane-next" type="button" aria-label="右の欄へ">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+          </nav>
+        <div class="panes">
+          <section class="pane">
+            <div class="source-heading">
+              <label for="text">原文</label>
+              <span id="count">0 / 4000</span>
+            </div>
+            <textarea id="text" maxlength="4000" placeholder="翻訳する文章を入力"></textarea>
+            <details class="context-control">
+              <summary><span class="context-add-icon" aria-hidden="true"></span>文脈を追加</summary>
+              <textarea id="context" aria-label="参考文脈" maxlength="1000" rows="2" placeholder="例：登場人物が大雨のあとに川沿いを歩いている場面です。"></textarea>
+            </details>
+            <div class="actions source-actions">
+              <details class="translation-settings">
+                <summary aria-label="翻訳設定" title="翻訳設定">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h5m4 0h9M3 17h9m4 0h5"/><circle cx="10" cy="7" r="2"/><circle cx="14" cy="17" r="2"/></svg>
+                </summary>
+                <div class="settings-panel options">
+                  <fieldset id="active-glossary" class="glossary-picker">
+                    <legend>適用する用語集</legend>
+                    <div id="glossary-choices">保存した用語集はここに表示されます。</div>
+                    <button id="new-glossary" type="button">＋用語集を追加</button>
+                  </fieldset>
+                  <label for="form">日本語訳の文体</label>
+                  <select id="form" disabled>
+                    <option value="">指定なし</option>
+                    <option value="plain">だ・である調</option>
+                    <option value="polite">です・ます調</option>
+                  </select>
+                </div>
+              </details>
+              <details id="model-picker" class="model-picker">
+                <summary class="composer-model">
+                  <span id="model-label">モデルを選択</span>
+                  <span id="model-gpu-indicator" class="gpu-badge" role="img" aria-label="GPUを使用中" hidden>GPU</span>
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                  <span class="model-switch-spinner" aria-hidden="true"></span>
+                </summary>
+                <div class="model-panel">
+                  <div class="model-panel-header">
+                    <button id="device" type="button" class="gpu-toggle" aria-label="GPUを使用" aria-pressed="false" aria-describedby="device-note" disabled>
+                      <span class="gpu-badge" aria-hidden="true">GPU</span>
+                    </button>
+                      <button id="open-model-manager" type="button" aria-label="モデル管理を開く" title="モデル管理を開く">
+                        <strong id="model-panel-label">モデルを選択</strong>
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>
+                      </button>
+                  </div>
+                  <div id="model-scale" class="model-scale" hidden>
+                    <input id="model" type="range" min="0" max="0" step="1" value="0" aria-label="使用するモデル" disabled>
+                    <div id="model-ticks" class="model-ticks" aria-hidden="true"></div>
+                  </div>
+                  <button id="stage-model" type="button" hidden>このモデルを選ぶ</button>
+                  <p id="device-note" class="device-note"></p>
+                </div>
+              </details>
+              <div class="retranslate-control translate-control">
+                <button class="loading-button" id="translate" disabled><span class="loading-label">翻訳</span><span class="loading-spinner" aria-hidden="true"></span></button>
+                <button id="translate-language" class="retranslate-picker" type="button" aria-label="翻訳先の言語" title="翻訳先の言語" popovertarget="retranslate-menu" disabled>
+                  <svg class="language-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/>
+                  </svg>
+                  <svg class="language-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                </button>
+              </div>
+            </div>
+          </section>
+          <section class="pane result">
+            <label for="output">訳文</label>
+            <textarea id="output" placeholder="翻訳結果がここに表示されます"></textarea>
+            <div class="actions">
+              <button class="copy-result" type="button" aria-label="訳文をコピー" title="訳文をコピー" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="8" y="8" width="12" height="12" rx="2"/>
+                  <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>
+                </svg>
+              </button>
+              <span class="elapsed" role="status"></span>
+              <div class="retranslate-control" hidden>
+                <button class="retranslate" type="button" disabled>再翻訳</button>
+                <button class="retranslate-picker retranslate-language" type="button" aria-label="再翻訳先の言語" title="再翻訳先の言語" popovertarget="retranslate-menu" disabled>
+                  <svg class="language-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/>
+                  </svg>
+                  <svg class="language-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+        </div>
+      </div>
+      <p id="feedback" role="status"></p>
+      <p id="status" role="status"></p>
+    </form>
+    </main>
+  </div>
+  <div id="retranslate-menu" popover aria-labelledby="retranslate-menu-title">
+    <p id="retranslate-menu-title">翻訳先を選択</p>
+    <div id="retranslate-options"></div>
+  </div>
+  <dialog id="native-language-dialog" aria-labelledby="native-language-title" aria-describedby="native-language-description" closedby="any">
+    <h2 id="native-language-title" tabindex="-1" autofocus>翻訳先の設定</h2>
+    <div class="language-setting-note">
+      <strong>自動切り替え</strong>
+      <p id="native-language-description">母語が入力された場合はよく使う言語へ、外国語の場合は母語へ翻訳します。</p>
+    </div>
+    <form id="native-language-form" class="options">
+      <label for="native-language">母語</label>
+      <select id="native-language" required>
+        <option value="">言語を選択</option>
+      </select>
+      <label for="frequent-language">よく使う言語</label>
+      <select id="frequent-language" required>
+        <option value="">言語を選択</option>
+      </select>
+      <p id="native-language-feedback" role="status"></p>
+      <div class="actions">
+        <button id="cancel-native-language" type="button">キャンセル</button>
+        <button class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="glossary-dialog" aria-labelledby="glossary-title" closedby="any">
+    <div class="dialog-header glossary-header">
+      <div>
+        <h2 id="glossary-title">用語集の管理</h2>
+        <p>翻訳で使う訳語を、用語集ごとにまとめられます。</p>
+      </div>
+      <form method="dialog"><button aria-label="用語集の管理を閉じる">閉じる</button></form>
+    </div>
+    <form id="glossary-form" class="glossary-manager">
+      <aside class="glossary-navigation" aria-label="保存済みの用語集">
+        <button id="create-glossary" type="button">＋新しい用語集</button>
+        <div id="glossary-presets" role="group" aria-label="用語集を選択"></div>
+      <div class="glossary-file-actions">
+        <button id="import-glossaries" type="button">インポート</button>
+        <button id="export-glossaries" type="button">エクスポート</button>
+        <input id="glossary-file" type="file" accept=".json,application/json" hidden>
+      </div>
+      </aside>
+      <section class="glossary-editor" aria-labelledby="glossary-editor-title">
+      <div class="glossary-editor-heading">
+        <h3 id="glossary-editor-title">新しい用語集</h3>
+        <button id="delete-glossary" class="loading-button" type="button" disabled><span class="loading-label">用語集を削除</span><span class="loading-spinner" aria-hidden="true"></span></button>
+      </div>
+      <label for="glossary-name">用語集の名前</label>
+      <input id="glossary-name" maxlength="80" required placeholder="例：製品ドキュメント">
+      <fieldset class="glossary">
+        <legend>用語 <span id="glossary-term-count"></span></legend>
+        <div id="glossary"></div>
+        <button id="add-term" type="button">＋用語を追加</button>
+        <template id="glossary-row">
+          <div class="glossary-row">
+            <label>原語<input type="text" maxlength="200" placeholder="例：dashboard"></label>
+            <label>訳語<input type="text" maxlength="200" placeholder="例：管理画面"></label>
+            <div class="term-actions">
+              <label class="term-enabled"><input type="checkbox" checked>有効</label>
+              <button type="button" aria-label="この用語を削除">削除</button>
+            </div>
+          </div>
+        </template>
+      </fieldset>
+      <div class="glossary-editor-footer">
+        <div class="actions">
+          <p id="glossary-feedback" role="status"></p>
+          <button id="save-glossary" class="primary loading-button"><span class="loading-label">保存</span><span class="loading-spinner" aria-hidden="true"></span></button>
+        </div>
+      </div>
+      </section>
+    </form>
+  </dialog>
+  <dialog id="manager" aria-labelledby="manager-title" closedby="any">
+    <div class="dialog-header">
+      <h2 id="manager-title" tabindex="-1" autofocus>モデル管理</h2>
+      <form method="dialog"><button>閉じる</button></form>
+    </div>
+    <section class="model-catalog" aria-labelledby="model-catalog-title">
+      <h3 id="model-catalog-title">モデル一覧</h3>
+      <p>必要なモデルだけダウンロードできます。初回は0.8Bがおすすめです。</p>
+      <div id="model-list"></div>
+    </section>
+    <p id="download-feedback" role="status"></p>
+    <div class="browser-model-storage">
+      <p>モデルはこのサイトのブラウザーストレージに保存されます。8B・31Bの実行には64ビットWebAssembly対応と十分なメモリが必要です。</p>
+      <label for="import-model">保存済みのGGUFモデルを取り込む</label>
+      <input id="import-model" type="file" accept=".gguf">
+    </div>
+    <p class="model-license">モデルには<a href="https://plamo.preferredai.jp/info/plamo-community-license-ja" target="_blank" rel="noopener">PLaMoコミュニティライセンス</a>が適用されます。商用利用の場合は<a href="https://huggingface.co/pfnet/plamo-3-translate-0.8b-GGUF/blob/main/README_ja.md#ライセンス" target="_blank" rel="noopener">事前登録などの利用条件</a>を確認してください。</p>
+  </dialog>
+  <dialog id="confirm-action" aria-labelledby="confirm-title" aria-describedby="confirm-description" closedby="any">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-description"></p>
+    <form method="dialog" class="actions">
+      <button value="cancel" autofocus>キャンセル</button>
+      <button id="confirm-submit" class="danger" value="confirm">実行</button>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,68 @@
+import { detectLanguage } from "./browser-langid.js";
+
+const tag = "<|plamo:tag|>";
+const msg = "<|plamo:msg|>";
+const lang = "<|plamo:key|>lang<|plamo:val|>";
+let worker;
+let runtimeKey;
+export let runtimeDevice;
+
+export function resetRuntime() {
+  worker?.terminate();
+  worker = undefined;
+  runtimeKey = undefined;
+  runtimeDevice = undefined;
+}
+
+export async function translateInBrowser(body, onFragment, onStatus, selection) {
+  const terms = body.glossary || [];
+  const inputs = [body.text, body.context, ...terms.flatMap(({ source, target }) => [source, target])];
+  if (inputs.some((text) => text?.includes("<|plamo:") || text?.includes("\0"))) {
+    throw new Error("入力にPLaMoの制御トークンやNUL文字を含めることはできません。");
+  }
+  const automatic = body.source === "auto";
+  const detected = automatic ? await detectLanguage(body.text) : body.source;
+  const source = detected === "zh" ? "zh-hans" : detected;
+  const native = source === body.target || (detected === "zh" && body.target === "zh-hant");
+  const target = body.frequent_language && native ? body.frequent_language : body.target;
+  if (body.source === target) throw new Error("翻訳元と翻訳先に異なる言語を選んでください。");
+  if (body.form && target !== "ja" && !body.frequent_language) {
+    throw new Error("文体を指定できるのは日本語への翻訳時です。");
+  }
+
+  const context = body.context?.trim() ? `${tag}context${msg}${body.context}` : "";
+  const glossary = terms.length ? `${tag}glossary` + terms.map(({ source, target }) =>
+    `<|plamo:index|>${source}<|plamo:item|>${target}`).join("") : "";
+  const form = body.form && target === "ja" ? `<|plamo:key|>form<|plamo:val|>${body.form}` : "";
+  const inputLanguage = automatic ? "" : lang + source;
+  const prompt = `${tag}dataset${msg}translation${context}${glossary}${tag}input${inputLanguage}${msg}${body.text}${tag}output${lang}${target}${form}${msg}`;
+
+  const key = `${selection.model}/${selection.device}`;
+  if (runtimeKey !== key) resetRuntime();
+  const blob = worker ? null : await selection.getBlob(onStatus);
+  worker ??= new Worker(new URL("./webgpu-worker.js", import.meta.url), { type: "module" });
+  runtimeKey = key;
+  return new Promise((resolve, reject) => {
+    let text = "";
+    function fail(message) {
+      resetRuntime();
+      reject(new Error(message));
+    }
+    worker.onerror = () => fail("ブラウザーの推論ランタイムを起動できませんでした。");
+    worker.onmessage = ({ data }) => {
+      switch (data.type) {
+        case "status": onStatus(data.text); break;
+        case "device":
+          runtimeDevice = data.text === "WebGPU" ? "gpu" : "cpu";
+          break;
+        case "delta":
+          text += data.text;
+          onFragment(data.text);
+          break;
+        case "done": resolve({ source, target, text: text.trim(), truncated: data.truncated }); break;
+        case "error": fail(data.text); break;
+      }
+    };
+    worker.postMessage({ prompt, blob, model: selection.model, device: selection.device });
+  });
+}

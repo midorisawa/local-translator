@@ -1,0 +1,7 @@
+/.local/
+/.wrangler/
+/wrangler.jsonc
+/data/
+*.gguf
+/.venv/
+__pycache__/
