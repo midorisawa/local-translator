@@ -1,5 +1,7 @@
 # Local Translation UI
 
+[日本語版はこちら](README-ja.md)
+
 A client-side translation web application powered by **PLaMo 3 Translate** running directly in your browser. All source and translated texts are processed entirely locally and never sent to external servers.
 
 ---
@@ -10,13 +12,13 @@ A client-side translation web application powered by **PLaMo 3 Translate** runni
 - **Rich Translation Features**:
   - Automatic language detection
   - Context-aware translation
-  - Japanese style selection (e.g., polite *Keitai* / casual *Jotai*)
+  - Plain or polite style for Japanese translations when Japanese is set as your language
   - Custom glossary support
   - Translation history and one-click re-translation
 - **History & Glossary Storage**: Stored securely in your browser's origin-scoped **IndexedDB**. Glossaries can be imported and exported in JSON format.
 - **Model Management**:
-  - Automatically downloads the **0.8B model** on your first translation request if no model is present.
-  - The model management panel allows you to monitor download progress, pause/cancel downloads, delete existing models, or import your own `Q4_K_M` GGUF files.
+  - If no model is installed, the app offers to download the **0.8B model** when you open it. The download starts after you confirm.
+  - The model management panel lets you monitor or cancel downloads, delete installed models, and import compatible PLaMo 3 Translate `Q4_K_M` GGUF files.
   - Downloaded models are stored in the browser's **Origin Private File System (OPFS)**. For browsers without streaming write support for OPFS, **Cache Storage** is used as a fallback. *(Note: Models will need to be re-downloaded if browsing data is cleared or evicted by the browser's storage manager).*
 - **Runtime Environment (WebGPU / CPU)**:
   - Uses **WebGPU** by default on supported devices, with an option to switch to CPU execution in the model selection panel.
@@ -67,7 +69,7 @@ uv run python webgpu/package.py .local/webgpu-build .local/webgpu-site --cpu-bui
 uv run python -m http.server 8876 --bind 127.0.0.1 --directory .local/webgpu-site
 ```
 
-Open [http://127.0.0.1:8876/](http://127.0.0.1:8876/) in your browser, select your source and target languages, and start translating!
+Open [http://127.0.0.1:8876/](http://127.0.0.1:8876/) in your browser and set your language and the language you use often. The app detects the source language and selects the target automatically. You can also choose a target language next to the Translate button.
 
 ---
 
