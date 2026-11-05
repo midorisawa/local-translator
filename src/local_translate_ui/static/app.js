@@ -1,4 +1,4 @@
-import { localizePage, t, uiLocale } from "./i18n.js";
+import { localizePage, preferredLocale, t, uiLocale } from "./i18n.js";
 
 localizePage();
 
@@ -287,8 +287,8 @@ function updateControls() {
   $("edit-native-language").disabled = translating || !savedNativeLanguage;
   text.readOnly = $("context").readOnly = translating;
   activeGlossary.disabled = translating;
-  const canUseJapaneseForm = target.value === "ja" ||
-    (target.value === "auto" && [savedNativeLanguage, savedFrequentLanguage].includes("ja"));
+  form.hidden = $("form-label").hidden = savedNativeLanguage !== "ja";
+  const canUseJapaneseForm = !form.hidden && (target.value === "ja" || target.value === "auto");
   form.disabled = translating || !canUseJapaneseForm;
 }
 
@@ -908,7 +908,7 @@ async function retranslate(pane, selectedLanguage) {
       text: original, source: translatedLanguage, target: destination,
       context: $("context").value,
       glossary: selectedTerms(),
-      form: destination === "ja" ? form.value : "",
+      form: destination === "ja" && !form.hidden ? form.value : "",
     }, (fragment) => updateStreamText(field, field.value + fragment));
     updateStreamText(field, result.text);
     setResultLanguages(next, result);
@@ -1088,7 +1088,7 @@ activeGlossary.addEventListener("change", () => {
 form.addEventListener("change", saveTranslationOptions);
 
 function openNativeLanguage() {
-  nativeLanguage.value = savedNativeLanguage || "ja";
+  nativeLanguage.value = savedNativeLanguage || preferredLocale || "en";
   frequentLanguage.value = savedFrequentLanguage || (nativeLanguage.value === "en" ? "ja" : "en");
   $("cancel-native-language").hidden = !savedFrequentLanguage;
   feedback("native-language-feedback", "");

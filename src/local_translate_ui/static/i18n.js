@@ -6,7 +6,7 @@ const supported = new Set([
   "ru", "si", "sk", "sl", "sr", "sw", "ta", "te", "th", "tl", "ur", "uz", "vi",
 ]);
 
-export function selectLocale(languages) {
+function selectLocale(languages) {
   for (const language of languages) {
     let locale;
     try {
@@ -21,15 +21,14 @@ export function selectLocale(languages) {
     const base = locale.language === "fil" ? "tl" : locale.language;
     if (supported.has(base)) return base;
   }
-  return "en";
 }
 
-const preferredLocale = selectLocale(navigator.languages?.length ? navigator.languages : [navigator.language]);
+export const preferredLocale = selectLocale(navigator.languages?.length ? navigator.languages : [navigator.language]);
 const messages = await loadMessages(preferredLocale);
 export const uiLocale = preferredLocale !== "ja" && !messages ? "en" : preferredLocale;
 
 async function loadMessages(locale) {
-  if (locale === "ja" || locale === "en") return null;
+  if (!locale || locale === "ja" || locale === "en") return null;
   try {
     const response = await fetch(new URL(`./locales/${locale}.json`, import.meta.url));
     if (response.ok) return await response.json();
