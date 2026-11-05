@@ -64,7 +64,7 @@ textarea::placeholder, input::placeholder { color: var(--placeholder); }
 .sidebar-nav button { display: flex; align-items: center; gap: .65rem; text-align: start; background: transparent; border-color: transparent; }
 #new-translation { border-radius: 999px; margin-bottom: .35rem; }
 .sidebar-nav svg { width: 1.15rem; height: 1.15rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
-main { display: flex; flex-direction: column; justify-content: center; width: min(100%, 72rem); min-height: 100dvh; margin-inline: auto; padding: 2rem clamp(1rem, 3.5vw, 3rem); }
+main { --main-block-space: 2rem; display: flex; flex-direction: column; justify-content: center; width: min(100%, 72rem); min-height: 100dvh; margin-inline: auto; padding: var(--main-block-space) clamp(1rem, 3.5vw, 3rem) .75rem; }
 .dialog-header, .actions {
   display: flex;
   align-items: center;
@@ -89,6 +89,13 @@ main { display: flex; flex-direction: column; justify-content: center; width: mi
 :root[dir="rtl"] #pane-navigation svg { transform: scaleX(-1); }
 #pane-navigation button:disabled { visibility: hidden; }
 .device-note, #status { font-size: .8rem; color: var(--text-muted); }
+.translation-messages {
+  display: grid;
+  align-content: start;
+  min-height: var(--main-block-space);
+  overflow-wrap: anywhere;
+}
+.translation-messages > p { margin: .5rem 0 0; }
 #status:empty, #feedback:empty { display: none; }
 .workspace { border: 1px solid var(--border); border-radius: 22px; background: var(--surface); box-shadow: 0 4px 18px #2021230a; }
 .panes {
@@ -361,7 +368,7 @@ button.danger:not(:disabled):hover { background: #821d2d; }
 .model-row button { flex-shrink: 0; }
 
 @media (max-width: 640px) {
-  main { padding-block: 4rem; }
+  main { --main-block-space: 4rem; }
   .pane { min-height: 0; }
   .pane > textarea { min-height: calc(3lh + 1rem + 2px); }
   .app-layout { grid-template-columns: minmax(0, 1fr); align-content: start; }

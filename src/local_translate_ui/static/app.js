@@ -100,16 +100,20 @@ let editingHistory = false;
 let deletingHistory = false;
 const selectedHistory = new Set();
 
+const translationMessages = document.querySelector(".translation-messages");
+
 function fitPanesToViewport() {
   const main = panes.closest("main");
   const padding = getComputedStyle(main);
   const top = main.getBoundingClientRect().top + window.scrollY;
   const limit = Math.max(208, window.innerHeight - top -
-    parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom) - 2);
+    parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom) -
+    translationMessages.getBoundingClientRect().height - 2);
   panes.style.setProperty("--pane-limit", `${limit}px`);
 }
 
 const layoutObserver = new ResizeObserver(fitPanesToViewport);
+layoutObserver.observe(translationMessages);
 layoutObserver.observe(document.querySelector(".sidebar"));
 layoutObserver.observe($("mobile-sidebar-toggle"));
 window.addEventListener("resize", fitPanesToViewport);
