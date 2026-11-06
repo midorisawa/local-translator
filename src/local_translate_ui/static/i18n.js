@@ -39,7 +39,7 @@ async function loadMessages(locale) {
 }
 
 const english = new Map([
-  ["ローカル翻訳", "Local Translator"],
+  ["ローカルAI翻訳", "Local AI Translator"],
   ["サイドバーを開く", "Open sidebar"],
   ["新しい翻訳", "New translation"],
   ["翻訳ツール", "Translation tools"],

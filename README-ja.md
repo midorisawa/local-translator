@@ -1,4 +1,4 @@
-# ローカル翻訳UI
+# ローカルAI翻訳UI
 
 [Read this in English](README.md)
 

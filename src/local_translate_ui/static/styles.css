@@ -386,7 +386,17 @@ button.danger:not(:disabled):hover { background: #821d2d; }
   .sidebar-footer { padding-inline: .5rem; }
   #mobile-sidebar-toggle, #mobile-new-translation { position: absolute; top: .75rem; left: 1rem; z-index: 12; display: grid; place-items: center; width: 42px; padding: 0; border: 0; background: transparent; }
   #mobile-new-translation { right: 1rem; left: auto; }
-  .mobile-title { position: absolute; top: .75rem; left: calc(1.5rem + 42px); display: flex; align-items: center; height: 42px; font-weight: 700; }
+  .mobile-title {
+    position: absolute;
+    top: .75rem;
+    inset-inline: calc(1.5rem + 42px);
+    align-content: center;
+    min-height: 42px;
+    display: block;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
   #mobile-sidebar-toggle svg, #mobile-new-translation svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   #mobile-sidebar-toggle[aria-expanded="true"] ~ :is(.mobile-title, #mobile-new-translation) { display: none; }
   .app-layout:has(#mobile-sidebar-toggle[aria-expanded="true"])::before {

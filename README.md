@@ -1,4 +1,4 @@
-# Local Translation UI
+# Local AI Translation UI
 
 [日本語版はこちら](README-ja.md)
 
