@@ -73,11 +73,12 @@ function startDownload(cache, id) {
   return done;
 }
 
-async function getBlob(model, onStatus) {
+async function getBlob(model, onStatus, savedOnly) {
   const cache = await modelCache();
   const read = async () => await savedModel(model) ?? await (await cache.match(urlFor(model)))?.blob();
   let saved = await read();
   if (!saved) {
+    if (savedOnly) return null;
     onStatus(t("PLaMo {0}のモデルを取得中…", model.toUpperCase()));
     await startDownload(cache, model);
     saved = await read();
@@ -89,10 +90,11 @@ async function getBlob(model, onStatus) {
   return saved;
 }
 
-export async function translationModel() {
+export async function translationModel(savedOnly = false) {
   const { model: active, device } = await selected(await modelCache());
+  if (savedOnly && !active) return null;
   const model = active ?? "0.8b";
-  return { model, device, getBlob: (onStatus) => getBlob(model, onStatus) };
+  return { model, device, getBlob: (onStatus) => getBlob(model, onStatus, savedOnly) };
 }
 
 export async function importModel(file) {

@@ -8,9 +8,16 @@ const idleTimeoutMs = 5 * 60 * 1000;
 let worker;
 let runtimeKey;
 let idleTimer;
+let warming;
+let cancelRequest;
+let runtimeGeneration = 0;
 export let runtimeDevice;
 
 export function resetRuntime() {
+  runtimeGeneration++;
+  cancelRequest?.();
+  cancelRequest = undefined;
+  warming = undefined;
   clearTimeout(idleTimer);
   idleTimer = undefined;
   worker?.terminate();
@@ -41,23 +48,52 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
   const form = body.form && target === "ja" ? `<|plamo:key|>form<|plamo:val|>${body.form}` : "";
   const inputLanguage = automatic ? "" : lang + source;
   const prompt = `${tag}dataset${msg}translation${context}${glossary}${tag}input${inputLanguage}${msg}${body.text}${tag}output${lang}${target}${form}${msg}`;
+  const key = `${selection.model}/${selection.device}`;
+  if (warming?.key === key) await warming.done;
+  const result = await runInference(selection, prompt, onFragment, onStatus);
+  return { source, target, ...result };
+}
 
+export function warmRuntime(selection) {
+  if (worker || warming) return;
+  const job = {
+    key: `${selection.model}/${selection.device}`,
+    done: runInference(selection, undefined, () => {}, () => {}).catch(() => {}),
+  };
+  warming = job;
+  job.done.then(() => {
+    if (warming === job) warming = undefined;
+  });
+}
+
+async function runInference(selection, prompt, onFragment, onStatus) {
   const key = `${selection.model}/${selection.device}`;
   if (runtimeKey !== key) resetRuntime();
   clearTimeout(idleTimer);
+  const generation = runtimeGeneration;
   const blob = worker ? null : await selection.getBlob(onStatus);
+  if (generation !== runtimeGeneration) {
+    throw new Error(t("ブラウザーの推論ランタイムを起動できませんでした。"));
+  }
+  if (!worker && !blob) return;
+  if (prompt === undefined && document.visibilityState !== "visible") return;
   function run(device) {
     worker ??= new Worker(new URL("./webgpu-worker.js", import.meta.url), { type: "module" });
     runtimeKey = key;
     const active = worker;
     return new Promise((resolve, reject) => {
       let text = "";
+      cancelRequest = () => reject(new Error(t("ブラウザーの推論ランタイムを起動できませんでした。")));
       function fail(message) {
+        cancelRequest = undefined;
         resetRuntime();
         reject(new Error(message));
       }
       function gpuInitFailed() {
-        resetRuntime();
+        cancelRequest = undefined;
+        active.terminate();
+        worker = undefined;
+        runtimeDevice = undefined;
         resolve(null);
       }
       active.onerror = () => {
@@ -75,9 +111,10 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
             onFragment(data.text);
             break;
           case "done":
+            cancelRequest = undefined;
             active.onmessage = active.onerror = null;
             idleTimer = setTimeout(resetRuntime, idleTimeoutMs);
-            resolve({ source, target, text: text.trim(), truncated: data.truncated });
+            resolve({ text: text.trim(), truncated: data.truncated });
             break;
           case "gpu-init-failed": gpuInitFailed(); break;
           case "error": fail(data.text); break;
@@ -90,6 +127,7 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
   const result = await run(runtimeDevice || selection.device);
   if (result) return result;
   if (selection.model === "31b") {
+    resetRuntime();
     throw new Error(t("31BはCPU用のブラウザーメモリ上限を超えます。WebGPUと十分なメモリを備えた端末で試してください。"));
   }
   return run("cpu");

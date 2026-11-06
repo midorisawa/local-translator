@@ -41,6 +41,10 @@ async function load(blob, model, device) {
 self.onmessage = async ({ data: { prompt, blob, model, device } }) => {
   try {
     runtime ??= await load(blob, model, device);
+    if (prompt === undefined) {
+      self.postMessage({ type: "done" });
+      return;
+    }
     self.postMessage({ type: "status", text: t("ブラウザー内で翻訳中…") });
     const space = await runtime.call("start_translation", ["string"], [prompt]);
     if (space === -2) throw new Error(t("入力が長すぎます。原文を分けて翻訳してください。"));

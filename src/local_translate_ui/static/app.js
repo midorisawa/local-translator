@@ -206,6 +206,22 @@ async function api(path, method = "GET", body) {
   return browserApi(path, method, body);
 }
 
+async function warmVisibleTab() {
+  if (document.visibilityState !== "visible" || translating || selecting) return;
+  try {
+    const { translationModel } = await import("./browser-api.js");
+    const { warmRuntime } = await import("./webgpu.js");
+    const selection = await translationModel(true);
+    if (selection && document.visibilityState === "visible" && !translating && !selecting) {
+      warmRuntime(selection);
+    }
+  } catch {
+    // 事前読み込みに失敗した場合は翻訳時に再試行する
+  }
+}
+document.addEventListener("visibilitychange", warmVisibleTab);
+warmVisibleTab();
+
 async function translateStream(body, onFragment) {
   const { translateInBrowser } = await import("./webgpu.js");
   const { translationModel } = await import("./browser-api.js");
