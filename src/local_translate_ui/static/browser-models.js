@@ -1,11 +1,28 @@
 import { t } from "./i18n.js";
 
-export const modelSizes = { "0.8b": 0.57, "2b": 1.81, "8b": 5.28, "31b": 19.53 };
+export const modelBytes = { "0.8b": 573123200, "2b": 1807199392, "8b": 5280442080, "31b": 19526583392 };
 export const modelFilename = (id) => `plamo-3-translate-${id}-Q4_K_M.gguf`;
 export const modelUrl = (id, override) => id === "0.8b" && override
   ? new URL(override, location.origin).href
   : `https://huggingface.co/pfnet/plamo-3-translate-${id}-GGUF/resolve/main/${modelFilename(id)}`;
 export const modelCache = () => caches.open("plamo-models-v1");
+
+export async function validModelFile(file, id) {
+  if (file.size < modelBytes[id]) return false;
+  const header = new DataView(await file.slice(0, 24).arrayBuffer());
+  const version = header.getUint32(4, true);
+  return header.getUint32(0, true) === 0x46554747 && (version === 2 || version === 3) &&
+    header.getBigUint64(8, true) > 0n && header.getBigUint64(16, true) > 0n;
+}
+
+// Memory64と16GiBの上限を宣言したWasmメモリーセクション
+export const hasMemory64 = WebAssembly.validate(Uint8Array.of(
+  0, 97, 115, 109, 1, 0, 0, 0, 5, 6, 1, 5, 0, 128, 128, 16,
+));
+
+export function modelLock(id, options, action) {
+  return navigator.locks ? navigator.locks.request(`plamo-model:${id}`, options, action) : action();
+}
 
 async function modelDirectory() {
   if (!navigator.storage?.getDirectory || !globalThis.FileSystemFileHandle?.prototype.createWritable) return null;

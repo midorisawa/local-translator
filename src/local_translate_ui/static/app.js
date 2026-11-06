@@ -273,9 +273,9 @@ function updateControls() {
     modelDraft.device !== modelDraft.initialDevice);
   $("translate").disabled = busy || waitingForModel || !state.models.length || !savedFrequentLanguage || !text.value.trim();
   $("translate").setAttribute("aria-busy", String(translating));
-  model.disabled = busy || installedModels.length < 2;
+  model.disabled = busy || pickerModels().length < 2;
   $("stage-model").disabled = busy;
-  device.disabled = busy || !installedModels.length || !state.gpu_available;
+  device.disabled = busy || !state.gpu_available;
   $("history-list").inert = translating || deletingHistory;
   $("new-translation").disabled = $("mobile-new-translation").disabled = translating || !savedFrequentLanguage;
   for (const pane of panes.querySelectorAll(".result")) {
@@ -307,44 +307,50 @@ function updateControls() {
 const label = (id) => id.toUpperCase();
 const modelLabel = (id) => `PLaMo ${label(id)}`;
 
+function pickerModels(currentDevice = modelDraft?.device || state.preferred_device) {
+  return state.models.filter((entry) => entry.installed && !entry.unavailable &&
+    (!entry.gpu_required || currentDevice === "gpu")).map((entry) => entry.id);
+}
+
 function renderModelPicker() {
   const actualDevice = state.device || "cpu";
+  const available = pickerModels();
   const selected = state.loading || state.active;
   const active = installedModels.includes(selected) ? selected : null;
-  const usingGpu = installedModels.length > 0 && (modelDraft?.device || actualDevice) === "gpu";
+  const usingGpu = (modelDraft?.device || state.preferred_device) === "gpu";
   $("model-gpu-indicator").toggleAttribute("hidden", actualDevice !== "gpu" || !active);
   device.setAttribute("aria-pressed", String(usingGpu));
-  device.title = !installedModels.length ? t("モデルなし") : usingGpu ? t("CPUに切り替える") :
+  device.title = usingGpu ? t("CPUに切り替える") :
     state.gpu_available ? t("GPUに切り替える") : t("GPUを利用できません");
   feedback("device-note",
-    !installedModels.length ? "" :
     modelDraft && (modelDraft.model !== modelDraft.initialModel || modelDraft.device !== modelDraft.initialDevice)
       ? t("パネルを閉じると変更を適用します。")
-      : state.gpu_available ? (usingGpu ? t("GPUを使用中") : t("CPUを使用中")) : t("GPU未検出"));
+      : state.gpu_available ? (actualDevice === "gpu" ? t("GPUを使用中") : t("CPUを使用中")) : t("GPU未検出"));
   const draft = modelDraft?.model;
-  const preview = installedModels.includes(draft) ? draft : active || installedModels[0];
+  const preview = available.includes(draft) ? draft : available.includes(active) ? active : available[0];
   const placeholder = installedModels.length ? t("モデルを選択") : t("モデルなし");
   $("model-label").textContent = active ? modelLabel(active) : placeholder;
   $("model-panel-label").textContent = preview ? modelLabel(preview) : placeholder;
-  $("model-scale").hidden = !installedModels.length;
+  $("model-scale").hidden = !available.length;
   $("stage-model").hidden = !preview || Boolean(active || modelDraft?.model);
-  model.max = Math.max(0, installedModels.length - 1);
-  model.value = Math.max(0, installedModels.indexOf(preview));
+  model.max = Math.max(0, available.length - 1);
+  model.value = Math.max(0, available.indexOf(preview));
   model.setAttribute("aria-valuetext", preview ? modelLabel(preview) : placeholder);
   model.style.setProperty("--model-progress", `${Number(model.max) ? 100 * model.valueAsNumber / Number(model.max) : 0}%`);
-}
-
-function renderModels() {
-  const installed = state.models.filter((entry) => entry.installed).map((entry) => entry.id);
-  if (installed.join() !== installedModels.join()) {
-    installedModels = installed;
-    $("model-ticks").replaceChildren(...installed.map((id, index) => {
+  const ticks = $("model-ticks");
+  if (ticks.dataset.models !== available.join()) {
+    ticks.dataset.models = available.join();
+    ticks.replaceChildren(...available.map((id, index) => {
       const tick = document.createElement("span");
       tick.textContent = label(id);
-      tick.style.setProperty("--tick-position", `${100 * index / Math.max(1, installed.length - 1)}%`);
+      tick.style.setProperty("--tick-position", `${100 * index / Math.max(1, available.length - 1)}%`);
       return tick;
     }));
   }
+}
+
+function renderModels() {
+  installedModels = pickerModels(state.preferred_device);
   renderModelPicker();
   const error = state.loading ? "" : state.error || "";
   feedback("status", error, Boolean(error));
@@ -432,7 +438,10 @@ function renderModels() {
     const download = entry.download;
     const running = Boolean(download?.running);
     const received = Math.floor((download?.received || 0) / 1e6);
-    const message = running ? t("ダウンロード中 · {0}MB", received) : download?.error || "";
+    const requirement = entry.unavailable ||
+      (entry.gpu_required && state.preferred_device === "cpu" ? t("31Bの翻訳にはGPUへの切り替えが必要です。") : "");
+    const downloadMessage = running ? t("ダウンロード中 · {0}MB", received) : download?.error;
+    const message = [downloadMessage, requirement].filter(Boolean).join(" ");
     status.textContent = message;
     status.hidden = !message;
     status.classList.toggle("error", Boolean(download?.error));
@@ -446,7 +455,7 @@ function renderModels() {
     button.hidden = entry.installed;
     check.hidden = !entry.installed;
     remove.hidden = !entry.installed;
-    button.disabled = false;
+    button.disabled = !running && Boolean(entry.unavailable);
     button.dataset.running = String(running);
     const action = running ? t("ダウンロードを中止") : download?.error ? t("ダウンロードを再試行") : t("ダウンロード");
     button.title = action;
@@ -517,7 +526,7 @@ async function select(path) {
 
 function stageModel() {
   if (!modelDraft) return;
-  modelDraft.model = installedModels[model.valueAsNumber];
+  modelDraft.model = pickerModels()[model.valueAsNumber];
   renderModelPicker();
   updateControls();
 }
@@ -527,6 +536,8 @@ $("stage-model").addEventListener("click", stageModel);
 device.addEventListener("click", () => {
   if (!modelDraft) return;
   modelDraft.device = modelDraft.device === "gpu" ? "cpu" : "gpu";
+  const available = pickerModels();
+  if (!available.includes(modelDraft.model)) modelDraft.model = available[0] ?? null;
   renderModelPicker();
   updateControls();
 });
@@ -534,7 +545,7 @@ device.addEventListener("click", () => {
 modelPicker.addEventListener("toggle", async () => {
   if (modelPicker.open) {
     const model = state.loading || state.active;
-    const device = state.device || "cpu";
+    const device = state.preferred_device || "cpu";
     modelDraft = { model, device, initialModel: model, initialDevice: device };
   } else if (modelDraft) {
     const draft = modelDraft;

@@ -1,5 +1,8 @@
 import { t } from "./i18n.js";
-import { deleteSavedModel, downloadModel, hasGpu, modelCache, modelFilename, modelSizes, modelUrl, savedModel, saveModel } from "./browser-models.js";
+import {
+  deleteSavedModel, downloadModel, hasGpu, hasMemory64, modelBytes, modelCache, modelFilename,
+  modelLock, modelUrl, savedModel, saveModel, validModelFile,
+} from "./browser-models.js";
 import { recordApi } from "./browser-records.js";
 import { resetRuntime, runtimeDevice } from "./webgpu.js";
 
@@ -14,16 +17,33 @@ function settings() {
   return JSON.parse(localStorage.getItem(settingsKey) || "{}");
 }
 
+function unsupported(id, gpu) {
+  if ((id === "8b" || id === "31b") && !hasMemory64) {
+    return t("このモデルにはMemory64に対応したブラウザーが必要です。");
+  }
+  if (id === "31b" && !gpu) {
+    return t("31BはCPU用のブラウザーメモリ上限を超えます。WebGPUと十分なメモリを備えた端末で試してください。");
+  }
+  return "";
+}
+
+function runnable(id, device, gpu) {
+  return !unsupported(id, gpu) && (id !== "31b" || device === "gpu");
+}
+
 async function selected(cache) {
   const { model, device } = settings();
   const urls = new Set((await cache.keys()).map((request) => request.url));
-  const installed = (await Promise.all(Object.keys(modelSizes).map(async (id) =>
+  const installed = (await Promise.all(Object.keys(modelBytes).map(async (id) =>
     urls.has(urlFor(id)) || await savedModel(id) ? id : null
   ))).filter(Boolean);
   const gpu = await gpuAvailable;
+  const currentDevice = gpu && device !== "cpu" ? "gpu" : "cpu";
+  const available = installed.filter((id) => runnable(id, currentDevice, gpu));
   return {
-    model: installed.includes(model) ? model : installed[0] || "0.8b",
-    device: gpu && device !== "cpu" ? "gpu" : "cpu",
+    model: available.includes(model) ? model : available[0] ?? null,
+    device: currentDevice,
+    gpu,
     installed,
   };
 }
@@ -38,7 +58,11 @@ function startDownload(cache, id) {
   const controller = new AbortController();
   const entry = { running: true, received: 0, total: 0, error: null };
   progress.set(id, entry);
-  const done = downloadModel(cache, id, urlFor(id), entry, controller.signal).catch(() => {
+  const url = urlFor(id);
+  const done = modelLock(id, { signal: controller.signal }, async () => {
+    if (await savedModel(id) || await cache.match(url)) return;
+    await downloadModel(cache, id, url, entry, controller.signal);
+  }).catch(() => {
     entry.error = controller.signal.aborted ? t("ダウンロードを中止しました。") :
       t("モデルを保存できませんでした。通信とブラウザーの空き容量を確認してください。");
   }).finally(() => {
@@ -63,18 +87,21 @@ async function getBlob(model, onStatus) {
 }
 
 export async function translationModel() {
-  const { model, device } = await selected(await modelCache());
+  const { model: active, device } = await selected(await modelCache());
+  const model = active ?? "0.8b";
   return { model, device, getBlob: (onStatus) => getBlob(model, onStatus) };
 }
 
 export async function importModel(file) {
-  const id = Object.keys(modelSizes).find((key) => modelFilename(key) === file.name);
-  if (!id || await file.slice(0, 4).text() !== "GGUF") {
+  const id = Object.keys(modelBytes).find((key) => modelFilename(key) === file.name);
+  if (!id || !await validModelFile(file, id)) {
     throw new Error(t("対応するPLaMo 3 TranslateのQ4_K_M GGUFファイルを選んでください。"));
   }
+  const reason = unsupported(id, await gpuAvailable);
+  if (reason) throw new Error(reason);
   if (jobs.has(id)) throw new Error(t("ダウンロードが終わってから取り込んでください。"));
   const cache = await modelCache();
-  await saveModel(cache, id, urlFor(id), file.stream());
+  await modelLock(id, {}, () => saveModel(cache, id, urlFor(id), file.stream()));
   resetRuntime();
 }
 
@@ -87,38 +114,52 @@ export async function browserApi(path, method, body) {
     return response.json();
   }
   const cache = await modelCache();
-  const { model, device, installed } = await selected(cache);
+  const { model, device, gpu, installed } = await selected(cache);
   if (resource === "models" && method === "GET") {
     return {
-      models: Object.entries(modelSizes).map(([key, size]) => ({
-        id: key, size, installed: installed.includes(key), download: progress.get(key),
+      models: Object.entries(modelBytes).map(([key, bytes]) => ({
+        id: key, size: Math.round(bytes / 1e7) / 100, installed: installed.includes(key),
+        unavailable: unsupported(key, gpu), gpu_required: key === "31b",
+        download: progress.get(key),
       })),
       active: model,
       device: runtimeDevice || device,
-      gpu_available: await gpuAvailable,
+      preferred_device: device,
+      gpu_available: gpu,
     };
   }
   if (resource === "downloads" && method === "DELETE") {
     jobs.get(id)?.controller.abort();
     return;
   }
-  if (resource === "models" && Object.hasOwn(modelSizes, id)) {
+  if (resource === "device" && (id === "cpu" || id === "gpu") && method === "PUT") {
+    if (id === "gpu" && !gpu) throw new Error(t("GPUを利用できません"));
+    select(settings().model, id);
+    return;
+  }
+  if (resource === "models" && Object.hasOwn(modelBytes, id)) {
     if (action === "download") {
+      const reason = unsupported(id, gpu);
+      if (reason) throw new Error(reason);
       if (!installed.includes(id)) startDownload(cache, id);
       return;
     }
     if (action === "select") {
-      if (id !== model && !installed.includes(id)) throw new Error(t("先にモデルをダウンロードしてください。"));
+      if (!installed.includes(id)) throw new Error(t("先にモデルをダウンロードしてください。"));
       const nextDevice = new URLSearchParams(path.split("?")[1]).get("device") || device;
+      const reason = unsupported(id, gpu && nextDevice === "gpu");
+      if (reason) throw new Error(reason);
       select(id, nextDevice);
       return;
     }
     if (method === "DELETE") {
-      await deleteSavedModel(id);
-      await cache.delete(urlFor(id));
+      await modelLock(id, {}, async () => {
+        await deleteSavedModel(id);
+        await cache.delete(urlFor(id));
+      });
       progress.delete(id);
       if (model === id) {
-        select(installed.find((key) => key !== id) || "0.8b", device);
+        select(null, device);
       }
       return;
     }
