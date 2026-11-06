@@ -56,7 +56,7 @@ textarea {
 }
 textarea::placeholder, input::placeholder { color: var(--placeholder); }
 
-.app-layout { display: grid; grid-template-columns: 14rem minmax(0, 1fr); min-height: 100vh; }
+.app-layout { display: grid; grid-template-columns: 14rem minmax(0, 1fr); min-height: 100dvh; }
 #mobile-sidebar-toggle, #mobile-new-translation, .mobile-title { display: none; }
 .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; height: 100dvh; background: var(--surface-muted); border-inline-end: 1px solid var(--border); padding: 1.25rem .75rem; }
 .brand { display: inline-block; margin: 0 .65rem 1.25rem; text-decoration: none; font-size: 1.125rem; font-weight: 700; }
