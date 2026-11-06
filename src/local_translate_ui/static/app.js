@@ -701,23 +701,15 @@ function renderGlossaryOptions() {
 }
 
 function renderGlossaryPresets() {
-  const list = $("glossary-presets");
-  list.replaceChildren();
-  if (!glossaryPresets.length) list.textContent = t("保存済みの用語集はありません。");
+  const select = $("glossary-presets");
+  const placeholder = new Option(t(glossaryPresets.length ? "用語集を選択" : "保存済みの用語集はありません。"), "");
+  placeholder.disabled = true;
+  select.replaceChildren(placeholder);
   for (const preset of glossaryPresets) {
-    const button = document.createElement("button");
-    const name = document.createElement("span");
-    const count = document.createElement("small");
-    button.type = "button";
-    button.setAttribute("aria-pressed", String(preset.id === editingGlossaryId));
-    name.textContent = preset.name;
-    count.textContent = t("{0}件が有効", preset.terms.filter((term) => term.enabled !== false).length);
-    button.append(name, count);
-    button.addEventListener("click", () => {
-      if (editingGlossaryId !== preset.id) openGlossaryEditor(preset.id);
-    });
-    list.append(button);
+    select.add(new Option(preset.name, preset.id));
   }
+  select.value = glossaryPresets.some((preset) => preset.id === editingGlossaryId) ? editingGlossaryId : "";
+  select.disabled = !glossaryPresets.length;
 }
 
 function openGlossaryEditor(id) {
@@ -739,6 +731,7 @@ async function loadGlossaries() {
 
 $("add-term").addEventListener("click", () => addGlossaryRow());
 $("create-glossary").addEventListener("click", () => openGlossaryEditor(""));
+$("glossary-presets").addEventListener("change", (event) => openGlossaryEditor(event.currentTarget.value));
 async function showGlossaryEditor(createNew) {
   const editor = $("glossary-form");
   editor.inert = true;

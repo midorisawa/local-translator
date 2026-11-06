@@ -249,15 +249,18 @@
       <form method="dialog"><button class="close-button" aria-label="用語集の管理を閉じる"><span aria-hidden="true">×</span></button></form>
     </div>
     <form id="glossary-form" class="glossary-manager">
-      <aside class="glossary-navigation" aria-label="保存済みの用語集">
-        <button id="create-glossary" type="button">＋新しい用語集</button>
-        <div id="glossary-presets" role="group" aria-label="用語集を選択"></div>
-      <div class="glossary-file-actions">
-        <button id="import-glossaries" type="button">インポート</button>
-        <button id="export-glossaries" type="button">エクスポート</button>
-        <input id="glossary-file" type="file" accept=".json,application/json" hidden>
+      <div class="glossary-navigation">
+        <label for="glossary-presets">保存済みの用語集</label>
+        <div class="glossary-switcher">
+          <select id="glossary-presets"></select>
+          <button id="create-glossary" type="button">＋新しい用語集</button>
+        </div>
+        <div class="glossary-file-actions">
+          <button id="import-glossaries" type="button">インポート</button>
+          <button id="export-glossaries" type="button">エクスポート</button>
+          <input id="glossary-file" type="file" accept=".json,application/json" hidden>
+        </div>
       </div>
-      </aside>
       <section class="glossary-editor" aria-labelledby="glossary-editor-title">
       <div class="glossary-editor-heading">
         <h3 id="glossary-editor-title">新しい用語集</h3>
@@ -281,13 +284,13 @@
           </div>
         </template>
       </fieldset>
+      </section>
       <div class="glossary-editor-footer">
         <div class="actions">
           <p id="glossary-feedback" role="status"></p>
           <button id="save-glossary" class="primary loading-button"><span class="loading-label">保存</span><span class="loading-spinner" aria-hidden="true"></span></button>
         </div>
       </div>
-      </section>
     </form>
   </dialog>
   <dialog autofocus id="manager" aria-labelledby="manager-title" closedby="any">
