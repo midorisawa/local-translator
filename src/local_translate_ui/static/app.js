@@ -194,7 +194,7 @@ function startNewTranslation() {
   source.value = "auto";
   target.value = "auto";
   resetResults();
-  feedback("feedback", "");
+  feedback("feedback", displayedWarmup ? t("モデルを読み込み中…") : "");
   updateControls();
 }
 
@@ -207,6 +207,7 @@ async function api(path, method = "GET", body) {
 }
 
 let warmupRequest = 0;
+let displayedWarmup;
 async function warmVisibleTab() {
   if (document.visibilityState !== "visible" || translating || selecting) return;
   const request = ++warmupRequest;
@@ -216,7 +217,16 @@ async function warmVisibleTab() {
     const selection = await translationModel(true);
     if (request === warmupRequest && selection &&
         document.visibilityState === "visible" && !translating && !selecting) {
-      warmRuntime(selection);
+      const pending = warmRuntime(selection);
+      if (!pending) return;
+      const message = t("モデルを読み込み中…");
+      displayedWarmup = pending;
+      feedback("feedback", message);
+      await pending;
+      if (displayedWarmup === pending) {
+        displayedWarmup = undefined;
+        if (!translating && $("feedback").textContent === message) feedback("feedback", "");
+      }
     }
   } catch {
     // 事前読み込みに失敗した場合は翻訳時に再試行する
@@ -830,7 +840,7 @@ $("translation").addEventListener("submit", async (event) => {
     if (document.activeElement === text) text.blur();
     showPanes(1, "instant");
   }
-  feedback("feedback", t("翻訳中…"));
+  feedback("feedback", t(displayedWarmup ? "モデルを読み込み中…" : "翻訳中…"));
   updateControls();
   try {
     const automatic = target.value === "auto";
@@ -952,7 +962,7 @@ async function retranslate(pane, selectedLanguage) {
   translating = true;
   showPanes(Array.from(panes.children).indexOf(next) - (singlePane.matches ? 0 : 1),
     singlePane.matches ? "instant" : "auto");
-  feedback("feedback", t("再翻訳中…"));
+  feedback("feedback", t(displayedWarmup ? "モデルを読み込み中…" : "再翻訳中…"));
   updateControls();
   try {
     const started = performance.now();

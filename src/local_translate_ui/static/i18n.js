@@ -208,6 +208,7 @@ const english = new Map([
   ["先にモデルをダウンロードしてください。", "Download the model first."],
   ["この操作を実行できません。", "This action is unavailable."],
   ["モデルを読み込めませんでした。", "Could not load the model."],
+  ["モデルを読み込み中…", "Loading the model…"],
   ["WebGPUにモデルを読み込み中…", "Loading the model on WebGPU…"],
   ["このモデルにはMemory64に対応したブラウザーが必要です。", "This model requires a browser with WebAssembly Memory64 support."],
   ["31BはCPU用のブラウザーメモリ上限を超えます。WebGPUと十分なメモリを備えた端末で試してください。", "The 31B model exceeds the browser memory limit for CPU inference. Try a device with WebGPU and enough memory."],

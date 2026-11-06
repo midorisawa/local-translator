@@ -64,6 +64,7 @@ export function warmRuntime(selection) {
   job.done.then(() => {
     if (warming === job) warming = undefined;
   });
+  return job.done;
 }
 
 async function runInference(selection, prompt, onFragment, onStatus) {
