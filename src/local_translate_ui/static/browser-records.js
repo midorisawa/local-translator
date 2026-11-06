@@ -72,7 +72,7 @@ export function recordApi(path, method, body) {
       const entry = entries.find((entry) => entry.id === id);
       if (!entry) throw new Error(t("元の翻訳履歴が見つかりません。"));
       const [first, ...retranslations] = body.results;
-      Object.assign(entry, first, { original: body.original, retranslations });
+      Object.assign(entry, first, { retranslations });
       return { saved: true };
     });
   }

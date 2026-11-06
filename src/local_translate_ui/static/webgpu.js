@@ -22,9 +22,9 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
     throw new Error(t("入力にPLaMoの制御トークンやNUL文字を含めることはできません。"));
   }
   const automatic = body.source === "auto";
-  const detected = automatic ? await detectLanguage(body.text) : body.source;
-  const source = detected === "zh" ? "zh-hans" : detected;
-  const native = source === body.target || (detected === "zh" && body.target === "zh-hant");
+  const source = automatic ? await detectLanguage(body.text) : body.source;
+  const native = source === body.target ||
+    (source === "zh" && (body.target === "zh-hans" || body.target === "zh-hant"));
   const target = body.frequent_language && native ? body.frequent_language : body.target;
   if (body.source === target) throw new Error(t("翻訳元と翻訳先に異なる言語を選んでください。"));
   if (body.form && target !== "ja" && !body.frequent_language) {

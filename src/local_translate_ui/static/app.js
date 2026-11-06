@@ -56,6 +56,7 @@ let savedFrequentLanguage = "";
 const text = $("text");
 const output = $("output");
 const resultLanguages = new WeakMap();
+const copyTimers = new WeakMap();
 const form = $("form");
 const panes = document.querySelector(".panes");
 const singlePane = matchMedia("(width < 1000px)");
@@ -175,6 +176,7 @@ function resetResults() {
   currentHistoryId = null;
   while (firstResult.nextElementSibling) firstResult.nextElementSibling.remove();
   firstResult.querySelector(".elapsed").textContent = "";
+  clearCopied(firstResult);
   resultLanguages.delete(firstResult);
   showPanes(0, "instant");
 }
@@ -287,7 +289,13 @@ function updateControls() {
     pane.querySelector(".retranslate-language").disabled = disabled;
   }
   $("count").textContent = `${text.value.length} / 4000`;
-  $("translate-language").disabled = $("translate").disabled;
+  const targetPicker = $("translate-language");
+  targetPicker.disabled = $("translate").disabled;
+  const targetName = target.selectedOptions[0]?.textContent;
+  const targetLabel = t("翻訳先の言語");
+  const pickerLabel = targetName ? `${targetLabel} · ${targetName}` : targetLabel;
+  targetPicker.title = pickerLabel;
+  targetPicker.setAttribute("aria-label", pickerLabel);
   $("edit-native-language").disabled = translating || !savedNativeLanguage;
   text.readOnly = $("context").readOnly = translating;
   activeGlossary.disabled = translating;
@@ -373,7 +381,9 @@ function renderModels() {
         const name = `PLaMo Translate ${label(entry.id)}`;
         if (!(await confirmAction(t("モデルを削除しますか？"),
           t("{0}を保存先から削除します。使うには再ダウンロードが必要です。", name), t("削除する")))) return;
-        if ((translating || selecting)) return;
+        if (translating || selecting) return;
+        selecting = true;
+        updateControls();
         remove.disabled = true;
         try {
           await api(`models/${entry.id}`, "DELETE");
@@ -382,6 +392,8 @@ function renderModels() {
         } catch (error) {
           feedback("download-feedback", error.message, true);
         } finally {
+          selecting = false;
+          updateControls();
           remove.disabled = false;
         }
       });
@@ -835,16 +847,18 @@ function prepareRetranslationMenu(button, pane) {
     const option = document.createElement("button");
     option.type = "button";
     option.textContent = language.textContent;
+    if (!pane && language.selected) option.setAttribute("aria-current", "true");
     option.addEventListener("click", () => {
       menu.hidePopover();
       if (button.disabled) return;
       if (pane) {
         if (pane.isConnected) retranslate(pane, language.value);
       } else {
+        const previousTarget = target.value;
         target.value = language.value;
         updateControls();
         $("translation").requestSubmit($("translate"));
-        target.value = "auto";
+        target.value = previousTarget;
         updateControls();
       }
     });
@@ -876,9 +890,7 @@ async function saveCurrentChain() {
     ...resultLanguages.get(pane),
     text: pane.querySelector("textarea").value,
   }));
-  await api(`history/${encodeURIComponent(currentHistoryId)}/chain`, "PUT", {
-    original: text.value, results,
-  });
+  await api(`history/${encodeURIComponent(currentHistoryId)}/chain`, "PUT", { results });
   loadHistory();
 }
 
@@ -933,7 +945,10 @@ async function retranslate(pane, selectedLanguage) {
 }
 
 panes.addEventListener("input", (event) => {
-  if (event.target.matches(".result textarea")) updateControls();
+  if (event.target.matches(".result textarea")) {
+    clearCopied(event.target.closest(".result"));
+    updateControls();
+  }
 });
 
 $("translation").addEventListener("keydown", (event) => {
@@ -947,10 +962,15 @@ function restoreHistory(entry) {
   text.value = entry.original;
   output.value = entry.text;
   source.value = entry.source_selection;
-  target.value = "auto";
+  target.value = Array.from(target.options).some((option) => option.value === entry.target_selection)
+    ? entry.target_selection
+    : "auto";
   resetResults();
   currentHistoryId = entry.id;
-  setResultLanguages(firstResult, entry);
+  const originalLanguage = entry.source_selection === "auto" && entry.source === "zh-hans"
+    ? "zh"
+    : entry.source;
+  setResultLanguages(firstResult, { ...entry, source: originalLanguage });
   let previous = firstResult;
   for (const result of entry.retranslations || []) {
     previous = addResultPane(previous, result);
@@ -1061,7 +1081,13 @@ async function loadHistory() {
   }
 }
 
-const copyTimers = new WeakMap();
+function clearCopied(pane) {
+  const button = pane.querySelector(".copy-result");
+  clearTimeout(copyTimers.get(button));
+  copyTimers.delete(button);
+  button.classList.remove("copied");
+}
+
 panes.addEventListener("click", async (event) => {
   const button = event.target.closest(".retranslate, .retranslate-language, .copy-result");
   if (!button) return;
@@ -1075,13 +1101,16 @@ panes.addEventListener("click", async (event) => {
     return;
   }
   const field = pane.querySelector("textarea");
+  const value = field.value;
   try {
-    await navigator.clipboard.writeText(field.value);
-    clearTimeout(copyTimers.get(button));
+    await navigator.clipboard.writeText(value);
+    if (!field.isConnected || field.value !== value || translating) return;
+    clearCopied(pane);
     button.classList.add("copied");
-    copyTimers.set(button, setTimeout(() => button.classList.remove("copied"), 5000));
+    copyTimers.set(button, setTimeout(() => clearCopied(pane), 5000));
     feedback("feedback", t("訳文をコピーしました。"));
   } catch {
+    if (!field.isConnected || field.value !== value || translating) return;
     field.select();
     feedback("feedback", t("自動でコピーできませんでした。選択した訳文をコピーしてください。"), true);
   }
