@@ -1241,8 +1241,18 @@ async function init() {
     source.add(new Option(t("自動判定"), "auto"));
     target.add(new Option(t("自動切り替え"), "auto"));
     const languageNames = new Intl.DisplayNames(uiLocale, { type: "language", fallback: "none" });
-    for (const [code, japaneseName] of Object.entries(languages)) {
-      const name = uiLocale === "ja" ? japaneseName : languageNames.of(code) ?? code;
+    const collator = new Intl.Collator(uiLocale);
+    const japaneseUI = uiLocale === "ja";
+    const priorityCodes = japaneseUI ? ["ja", "en", "zh-hans", "zh-hant", "ko"] : [];
+    const priorities = new Map(priorityCodes.map((code, index) => [code, index]));
+    const sortedLanguages = Object.entries(languages).map(([code, japaneseName]) => {
+      const name = japaneseUI ? japaneseName : languageNames.of(code) ?? code;
+      return { code, name, sortName: japaneseUI ? name.replace(/語$/, "") : name };
+    });
+    sortedLanguages.sort((a, b) =>
+      (priorities.get(a.code) ?? priorityCodes.length) - (priorities.get(b.code) ?? priorityCodes.length) ||
+      collator.compare(a.sortName, b.sortName));
+    for (const { code, name } of sortedLanguages) {
       source.add(new Option(name, code));
       target.add(new Option(name, code));
       nativeLanguage.add(new Option(name, code));
