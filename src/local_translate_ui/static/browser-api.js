@@ -1,7 +1,7 @@
 import { t } from "./i18n.js";
 import {
   deleteSavedModel, downloadModel, hasGpu, hasMemory64, modelBytes, modelCache, modelFilename,
-  modelLock, modelUrl, savedModel, saveModel, validModelFile,
+  modelLock, modelUrl, savedModel, saveModel, validModelMetadata,
 } from "./browser-models.js";
 import { recordApi } from "./browser-records.js";
 import { resetRuntime, runtimeDevice } from "./webgpu.js";
@@ -83,6 +83,9 @@ async function getBlob(model, onStatus) {
     saved = await read();
     if (!saved) throw new Error(progress.get(model)?.error || t("保存済みモデルを読み込めませんでした。"));
   }
+  if (!await validModelMetadata(saved)) {
+    throw new Error(t("モデルを読み込めませんでした。"));
+  }
   return saved;
 }
 
@@ -94,7 +97,7 @@ export async function translationModel() {
 
 export async function importModel(file) {
   const id = Object.keys(modelBytes).find((key) => modelFilename(key) === file.name);
-  if (!id || !await validModelFile(file, id)) {
+  if (!id || file.size < modelBytes[id] || !await validModelMetadata(file)) {
     throw new Error(t("対応するPLaMo 3 TranslateのQ4_K_M GGUFファイルを選んでください。"));
   }
   const reason = unsupported(id, await gpuAvailable);

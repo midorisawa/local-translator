@@ -28,17 +28,11 @@ async function loadRuntime(blob, gpu, model) {
 
 async function load(blob, model, device) {
   if (device === "gpu") {
-    try {
-      if (await hasGpu()) {
-        status(t("WebGPUにモデルを読み込み中…"));
-        return await loadRuntime(blob, true, model);
-      }
-    } catch (error) {
-      console.warn("WebGPU initialization failed", error);
+    if (await hasGpu()) {
+      status(t("WebGPUにモデルを読み込み中…"));
+      return loadRuntime(blob, true, model);
     }
-  }
-  if (model === "31b") {
-    throw new Error(t("31BはCPU用のブラウザーメモリ上限を超えます。WebGPUと十分なメモリを備えた端末で試してください。"));
+    throw new Error(t("GPUを利用できません"));
   }
   status(t("CPUにモデルを読み込み中…"));
   return loadRuntime(blob, false, model);
@@ -70,6 +64,11 @@ self.onmessage = async ({ data: { prompt, blob, model, device } }) => {
     if (tail) self.postMessage({ type: "delta", text: tail });
     self.postMessage({ type: "done", truncated: !ended });
   } catch (error) {
-    self.postMessage({ type: "error", text: error.message });
+    if (!runtime && device === "gpu") {
+      console.warn("WebGPU initialization failed", error);
+      self.postMessage({ type: "gpu-init-failed" });
+    } else {
+      self.postMessage({ type: "error", text: error.message });
+    }
   }
 };

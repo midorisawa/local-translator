@@ -97,6 +97,7 @@ let translating = false;
 let selecting = false;
 let refreshing = false;
 let historyRequest = 0;
+let historyRestoreRequest = 0;
 let editingHistory = false;
 let deletingHistory = false;
 const selectedHistory = new Set();
@@ -182,6 +183,7 @@ function resetResults() {
 }
 
 function startNewTranslation() {
+  historyRestoreRequest++;
   setMobileSidebar(false);
   text.value = "";
   text.scrollTop = 0;
@@ -212,12 +214,11 @@ async function translateStream(body, onFragment) {
   );
   if (body.save_history && result.text) {
     try {
-      const { records } = await import("./browser-records.js");
       const id = crypto.randomUUID();
-      await records("history", (entries) => entries.unshift({
+      await api("history", "POST", {
         ...result, id, created_at: new Date().toISOString(), original: body.text,
         source_selection: body.source, target_selection: body.frequent_language ? "auto" : body.target,
-      }));
+      });
       result.history_id = id;
     } catch {
       result.history_error = t("訳文は取得できましたが、履歴を保存できませんでした。");
@@ -791,6 +792,7 @@ document.addEventListener("click", (event) => {
 $("translation").addEventListener("submit", async (event) => {
   event.preventDefault();
   if ($("translate").disabled) return;
+  historyRestoreRequest++;
   if (!installedModels.length) {
     await promptModelDownload();
     return;
@@ -902,7 +904,6 @@ async function saveCurrentChain() {
     text: pane.querySelector("textarea").value,
   }));
   await api(`history/${encodeURIComponent(currentHistoryId)}/chain`, "PUT", { results });
-  loadHistory();
 }
 
 async function retranslate(pane, selectedLanguage) {
@@ -1065,24 +1066,37 @@ async function loadHistory() {
     }
     list.replaceChildren();
     feedback("history-feedback", entries.length ? "" : t("翻訳履歴はありません。"));
-    for (const entry of entries) {
+    for (const { id, title } of entries) {
       const row = $("history-entry").content.firstElementChild.cloneNode(true);
       const open = row.querySelector(".history-restore");
-      const title = entry.original.trim().replace(/\s+/g, " ");
       open.textContent = title;
       open.title = title;
       const checkbox = row.querySelector(".history-select");
-      checkbox.value = entry.id;
-      checkbox.checked = selectedHistory.has(entry.id);
+      checkbox.value = id;
+      checkbox.checked = selectedHistory.has(id);
       checkbox.setAttribute("aria-label", t("「{0}」を選択", title));
       checkbox.addEventListener("change", () => {
-        if (checkbox.checked) selectedHistory.add(entry.id);
-        else selectedHistory.delete(entry.id);
+        if (checkbox.checked) selectedHistory.add(id);
+        else selectedHistory.delete(id);
         updateHistoryEditing();
       });
-      open.addEventListener("click", () => {
-        if (editingHistory) checkbox.click();
-        else restoreHistory(entry);
+      open.addEventListener("click", async () => {
+        if (editingHistory) {
+          checkbox.click();
+          return;
+        }
+        const restoreRequest = ++historyRestoreRequest;
+        try {
+          const entry = await api(`history/${encodeURIComponent(id)}`);
+          if (restoreRequest === historyRestoreRequest && row.isConnected &&
+              !editingHistory && !translating && !deletingHistory) {
+            restoreHistory(entry);
+          }
+        } catch (error) {
+          if (restoreRequest === historyRestoreRequest && row.isConnected) {
+            feedback("history-feedback", error.message, true);
+          }
+        }
       });
       list.append(row);
     }

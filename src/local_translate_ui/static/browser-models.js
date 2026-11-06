@@ -7,12 +7,71 @@ export const modelUrl = (id, override) => id === "0.8b" && override
   : `https://huggingface.co/pfnet/plamo-3-translate-${id}-GGUF/resolve/main/${modelFilename(id)}`;
 export const modelCache = () => caches.open("plamo-models-v1");
 
-export async function validModelFile(file, id) {
-  if (file.size < modelBytes[id]) return false;
-  const header = new DataView(await file.slice(0, 24).arrayBuffer());
-  const version = header.getUint32(4, true);
-  return header.getUint32(0, true) === 0x46554747 && (version === 2 || version === 3) &&
-    header.getBigUint64(8, true) > 0n && header.getBigUint64(16, true) > 0n;
+const maxMetadataBytes = 16 * 1024 * 1024;
+const ggufValueBytes = [1, 1, 2, 2, 4, 4, 4, 1, 0, 0, 8, 8, 8];
+const ggufString = 8;
+const ggufArray = 9;
+
+export async function validModelMetadata(file) {
+  const view = new DataView(await file.slice(0, maxMetadataBytes).arrayBuffer());
+  let offset = 0;
+  function readUint32() {
+    const value = view.getUint32(offset, true);
+    offset += 4;
+    return value;
+  }
+  function readLength() {
+    const value = view.getBigUint64(offset, true);
+    offset += 8;
+    if (value > BigInt(view.byteLength)) throw new RangeError();
+    return Number(value);
+  }
+  function skip(bytes) {
+    offset += bytes;
+    if (offset > view.byteLength) throw new RangeError();
+  }
+  function skipString() {
+    skip(readLength());
+  }
+
+  try {
+    if (readUint32() !== 0x46554747) return false;
+    const version = readUint32();
+    if (version !== 2 && version !== 3) return false;
+    const tensors = readLength();
+    const entries = readLength();
+    if (!tensors || !entries) return false;
+
+    // メタデータの値は展開せず、各フィールドが上限内に収まることを確認する
+    for (let i = 0; i < entries; i++) {
+      skipString();
+      let type = readUint32();
+      let count = 1;
+      if (type === ggufArray) {
+        type = readUint32();
+        count = readLength();
+      }
+      if (type === ggufString) {
+        if (count * 8 > view.byteLength - offset) return false;
+        for (let j = 0; j < count; j++) skipString();
+      } else {
+        const bytes = ggufValueBytes[type];
+        if (!bytes) return false;
+        skip(count * bytes);
+      }
+    }
+    // テンソル名と形状も確認し、重み本体は読み込まない
+    for (let i = 0; i < tensors; i++) {
+      skipString();
+      const dimensions = readUint32();
+      if (dimensions > 4) return false;
+      skip(dimensions * 8 + 4 + 8);
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof RangeError) return false;
+    throw error;
+  }
 }
 
 // Memory64と16GiBの上限を宣言したWasmメモリーセクション
