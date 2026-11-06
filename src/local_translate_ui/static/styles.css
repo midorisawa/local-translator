@@ -271,7 +271,12 @@ summary { cursor: pointer; border-radius: var(--control-radius); }
 .glossary-editor > label, .glossary legend { font-size: .875rem; font-weight: 650; }
 .glossary { min-width: 0; margin: .5rem 0 0; padding: 0; border: 0; }
 #glossary-term-count { margin-inline-start: .35rem; color: var(--text-muted); font-weight: 400; }
-.glossary-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: .5rem; margin: .4rem 0 .6rem; padding: .6rem; border: 1px solid var(--border); border-radius: 10px; }
+.glossary-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: end; gap: .5rem; margin: .4rem 0 .6rem; padding: .6rem; border: 1px solid var(--border); border-radius: 10px; }
+.term-direction { width: 42px; padding: 0; }
+.term-direction span { display: inline-block; }
+@media (width >= 1000px) {
+  :root[dir="rtl"] .term-direction span { transform: scaleX(-1); }
+}
 .glossary-row:has(.term-enabled input:not(:checked)) { background: var(--surface-muted); }
 .glossary-row label { display: grid; gap: .2rem; font-size: .8rem; color: var(--text-muted); }
 .glossary-row input[type="text"] { min-width: 0; width: 100%; font-size: .875rem; }
@@ -351,6 +356,7 @@ button.danger:not(:disabled):hover { background: #821d2d; }
 .history-entry button { border: 0; background: transparent; min-height: 36px; font-size: .85rem; }
 .history-restore { min-width: 0; text-align: start; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .model-row { display: flex; justify-content: space-between; gap: .6rem; align-items: center; padding: .75rem 0; border-top: 1px solid var(--border); }
+.model-row-unavailable .model-row-details { color: var(--text-muted); }
 .model-row small { display: block; color: var(--text-muted); }
 .model-row small[hidden] { display: none; }
 .model-download, .model-installed { width: 42px; text-align: center; }
@@ -386,10 +392,14 @@ button.danger:not(:disabled):hover { background: #821d2d; }
   .sidebar-footer { padding-inline: .5rem; }
   #mobile-sidebar-toggle, #mobile-new-translation { position: absolute; top: .75rem; left: 1rem; z-index: 12; display: grid; place-items: center; width: 42px; padding: 0; border: 0; background: transparent; }
   #mobile-new-translation { right: 1rem; left: auto; }
+  #mobile-sidebar-toggle[aria-expanded="false"] {
+    grid-template-columns: 42px minmax(0, auto);
+    gap: .5rem;
+    width: max-content;
+    max-width: calc(100% - 2.5rem - 42px);
+    direction: ltr;
+  }
   .mobile-title {
-    position: absolute;
-    top: .75rem;
-    inset-inline: calc(1.5rem + 42px);
     align-content: center;
     min-height: 42px;
     display: block;
@@ -398,7 +408,8 @@ button.danger:not(:disabled):hover { background: #821d2d; }
     overflow-wrap: anywhere;
   }
   #mobile-sidebar-toggle svg, #mobile-new-translation svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-  #mobile-sidebar-toggle[aria-expanded="true"] ~ :is(.mobile-title, #mobile-new-translation) { display: none; }
+  #mobile-sidebar-toggle[aria-expanded="true"] .mobile-title,
+  #mobile-sidebar-toggle[aria-expanded="true"] ~ #mobile-new-translation { display: none; }
   .app-layout:has(#mobile-sidebar-toggle[aria-expanded="true"])::before {
     content: "";
     position: fixed;
@@ -419,11 +430,15 @@ button.danger:not(:disabled):hover { background: #821d2d; }
   .glossary-manager { grid-template-columns: minmax(0, 1fr); }
   .glossary-navigation { border-inline-end: 0; border-bottom: 1px solid var(--border); }
   #glossary-presets { max-height: 8rem; }
-  .glossary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .term-actions { grid-column: 1 / -1; justify-content: flex-end; }
 }
 
 @media (width < 1000px) {
   .panes { grid-auto-columns: 100%; }
   .result { border-inline-start: 0; }
+  .glossary-row { grid-template-columns: auto minmax(0, 1fr); }
+  .term-first { grid-area: 1 / 2; }
+  .term-second { grid-area: 2 / 2; }
+  .term-direction { grid-area: 1 / 1 / 3; align-self: center; }
+  :root .term-direction span { transform: rotate(90deg); }
+  .term-actions { grid-column: 1 / -1; justify-content: flex-end; }
 }

@@ -461,9 +461,10 @@ function renderModels() {
       actions.append(check, remove, recommendation, button);
       row.append(details, actions);
       $("model-list").append(row);
-      rows.set(entry.id, { status, progress, button, check, remove, recommendation });
+      rows.set(entry.id, { row, status, progress, button, check, remove, recommendation });
     }
-    const { status, progress, button, check, remove, recommendation } = rows.get(entry.id);
+    const { row, status, progress, button, check, remove, recommendation } = rows.get(entry.id);
+    row.classList.toggle("model-row-unavailable", Boolean(entry.unavailable));
     recommendation.hidden = entry.installed || entry.id !== (state.gpu_available ? "2b" : "0.8b");
     const download = entry.download;
     const running = Boolean(download?.running);
@@ -600,11 +601,12 @@ function glossary() {
     const [original, translation, enabled] = row.querySelectorAll("input");
     const source = original.value.trim();
     const target = translation.value.trim();
+    const bidirectional = row.querySelector(".term-direction").getAttribute("aria-pressed") === "true";
     if (!source && !target) continue;
     if (!source || !target) {
-      throw new Error(t("用語集の{0}行目に原語と訳語を入力してください。", index + 1));
+      throw new Error(t("用語集の{0}行目の両方の欄に用語を入力してください。", index + 1));
     }
-    terms.push({ source, target, enabled: enabled.checked });
+    terms.push({ source, target, enabled: enabled.checked, bidirectional });
   }
   return terms;
 }
@@ -615,10 +617,21 @@ function addGlossaryRow(term = {}) {
   original.value = term.source || "";
   translation.value = term.target || "";
   enabled.checked = term.enabled !== false;
-  row.querySelector("button").addEventListener("click", async () => {
+  const direction = row.querySelector(".term-direction");
+  direction.setAttribute("aria-label", t("双方向に適用"));
+  direction.title = t("双方向に適用");
+  function setDirection(bidirectional) {
+    direction.setAttribute("aria-pressed", String(bidirectional));
+    direction.firstElementChild.textContent = bidirectional ? "↔" : "→";
+    row.querySelector(".term-first span").textContent = t(bidirectional ? "用語1" : "原語");
+    row.querySelector(".term-second span").textContent = t(bidirectional ? "用語2" : "訳語");
+  }
+  setDirection(term.bidirectional === true);
+  direction.addEventListener("click", () => setDirection(direction.getAttribute("aria-pressed") === "false"));
+  row.querySelector(".term-actions button").addEventListener("click", async () => {
     if ((original.value.trim() || translation.value.trim()) &&
         !(await confirmAction(t("この用語を削除しますか？"),
-          t("入力した原語と訳語を編集欄から取り除きます。"), t("削除する")))) return;
+          t("入力した2つの用語を編集欄から取り除きます。"), t("削除する")))) return;
     row.remove();
     updateGlossaryRows();
   });
@@ -649,17 +662,23 @@ function saveTranslationOptions() {
 
 function selectedTerms() {
   const terms = new Map();
+  const reversed = [];
+  function addTerm(source, target) {
+    const existing = terms.get(source);
+    if (existing && existing.target !== target) {
+      throw new Error(t("「{0}」に異なる訳語が指定されています。適用する用語集を見直してください。", source));
+    }
+    terms.set(source, { source, target });
+  }
   for (const preset of selectedGlossaries()) {
     for (const term of preset.terms) {
       if (term.enabled === false) continue;
-      const existing = terms.get(term.source);
-      if (existing && existing.target !== term.target) {
-        throw new Error(t("「{0}」に異なる訳語が指定されています。適用する用語集を見直してください。", term.source));
-      }
-      terms.set(term.source, term);
+      addTerm(term.source, term.target);
+      if (term.bidirectional) reversed.push(term);
     }
   }
   if (terms.size > 20) throw new Error(t("適用する用語は合計20組までです。用語集の選択を減らしてください。"));
+  for (const { source, target } of reversed) addTerm(target, source);
   return Array.from(terms.values());
 }
 

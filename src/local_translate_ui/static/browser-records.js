@@ -114,10 +114,12 @@ function glossary(preset) {
       !Array.isArray(preset.terms) || !preset.terms.length || preset.terms.length > 20) {
     throw new Error(t("用語集の名前と用語を確認してください。"));
   }
-  const terms = preset.terms.map(({ source, target, enabled = true }) => {
+  const terms = preset.terms.map(({ source, target, enabled = true, bidirectional = false }) => {
     if ([source, target].some((term) => typeof term !== "string" || !term.trim() || term.length > 200) ||
-        typeof enabled !== "boolean") throw new Error(t("用語集の用語を確認してください。"));
-    return { source, target, enabled };
+        typeof enabled !== "boolean" || typeof bidirectional !== "boolean") {
+      throw new Error(t("用語集の用語を確認してください。"));
+    }
+    return { source, target, enabled, ...(bidirectional && { bidirectional }) };
   });
   return { name: preset.name, terms };
 }
