@@ -206,13 +206,16 @@ async function api(path, method = "GET", body) {
   return browserApi(path, method, body);
 }
 
+let warmupRequest = 0;
 async function warmVisibleTab() {
   if (document.visibilityState !== "visible" || translating || selecting) return;
+  const request = ++warmupRequest;
   try {
     const { translationModel } = await import("./browser-api.js");
     const { warmRuntime } = await import("./webgpu.js");
     const selection = await translationModel(true);
-    if (selection && document.visibilityState === "visible" && !translating && !selecting) {
+    if (request === warmupRequest && selection &&
+        document.visibilityState === "visible" && !translating && !selecting) {
       warmRuntime(selection);
     }
   } catch {
@@ -528,16 +531,20 @@ $("manage").addEventListener("click", openModelManager);
 $("open-model-manager").addEventListener("click", openModelManager);
 async function select(path) {
   selecting = true;
+  warmupRequest++;
+  let changed = false;
   updateControls();
   feedback("feedback", "");
   try {
     await api(path, "PUT");
+    changed = true;
   } catch (error) {
     feedback("feedback", error.message, true);
   } finally {
     await refresh();
     selecting = false;
     updateControls();
+    if (changed) warmVisibleTab();
   }
 }
 
