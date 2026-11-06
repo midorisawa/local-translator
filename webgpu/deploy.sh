@@ -9,10 +9,12 @@ if [[ ! "$CLOUDFLARE_PATH_SEGMENT" =~ ^[a-zA-Z0-9_-]+$ ]]; then
   exit 1
 fi
 
-mkdir -p .local/deploy-site
-mv .local/webgpu-site ".local/deploy-site/$CLOUDFLARE_PATH_SEGMENT"
+stage=$(mktemp -d .local/deploy.XXXXXX)
+trap 'rm -rf -- "$stage"' EXIT
+mkdir "$stage/assets"
+cp -R .local/webgpu-site "$stage/assets/$CLOUDFLARE_PATH_SEGMENT"
 
-node <<'JS'
+node - "$stage/wrangler.jsonc" <<'JS'
 const { readFileSync, writeFileSync } = require('node:fs');
 const config = JSON.parse(readFileSync('wrangler.jsonc.template', 'utf8'));
 const zone = process.env.CLOUDFLARE_ZONE_NAME;
@@ -21,9 +23,9 @@ const base = zone + '/' + process.env.CLOUDFLARE_PATH_SEGMENT;
 config.name = process.env.CLOUDFLARE_WORKER_NAME;
 config.workers_dev = false;
 config.preview_urls = false;
-config.assets.directory = './.local/deploy-site';
+config.assets.directory = './assets';
 config.routes = [base, base + '/*'].map(pattern => ({ pattern, zone_name: zone }));
-writeFileSync('wrangler.jsonc', JSON.stringify(config, null, 2) + '\n');
+writeFileSync(process.argv[2], JSON.stringify(config, null, 2) + '\n');
 JS
 
-pnpm dlx wrangler@4.153.0 deploy --config wrangler.jsonc
+pnpm dlx wrangler@4.153.0 deploy --config "$stage/wrangler.jsonc"
