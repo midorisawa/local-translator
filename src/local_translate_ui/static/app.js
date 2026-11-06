@@ -3,6 +3,25 @@ import { localizePage, preferredLocale, t, uiLocale } from "./i18n.js";
 localizePage();
 
 const $ = (id) => document.getElementById(id);
+
+for (const dialog of document.querySelectorAll('dialog[data-dismiss-on-backdrop]')) {
+  function isBackdrop(event) {
+    if (event.target !== dialog) return false;
+    const { left, right, top, bottom } = dialog.getBoundingClientRect();
+    return event.clientX < left || event.clientX >= right || event.clientY < top || event.clientY >= bottom;
+  }
+  let startedInside = false;
+  dialog.addEventListener("pointerdown", (event) => {
+    if (event.isPrimary) startedInside = !isBackdrop(event);
+  });
+  dialog.addEventListener("click", (event) => {
+    const dismiss = dialog.open && !startedInside && isBackdrop(event);
+    startedInside = false;
+    if (!dismiss) return;
+    if (dialog.dispatchEvent(new Event("cancel", { cancelable: true }))) dialog.close();
+  });
+}
+
 const systemTheme = matchMedia("(prefers-color-scheme: dark)");
 const themeToggle = $("theme-toggle");
 const themeKey = "plamo.theme";

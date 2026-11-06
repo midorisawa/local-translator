@@ -218,7 +218,7 @@
     <p id="retranslate-menu-title">翻訳先を選択</p>
     <div id="retranslate-options"></div>
   </div>
-  <dialog id="native-language-dialog" aria-labelledby="native-language-title" aria-describedby="native-language-description" closedby="any">
+  <dialog id="native-language-dialog" aria-labelledby="native-language-title" aria-describedby="native-language-description" data-dismiss-on-backdrop>
     <h2 id="native-language-title" tabindex="-1" autofocus>翻訳先の設定</h2>
     <div class="language-setting-note">
       <strong>自動切り替え</strong>
@@ -240,7 +240,7 @@
       </div>
     </form>
   </dialog>
-  <dialog autofocus id="glossary-dialog" aria-labelledby="glossary-title" closedby="any">
+  <dialog autofocus id="glossary-dialog" aria-labelledby="glossary-title" data-dismiss-on-backdrop>
     <div class="dialog-header glossary-header">
       <div>
         <h2 id="glossary-title">用語集の管理</h2>
@@ -293,7 +293,7 @@
       </div>
     </form>
   </dialog>
-  <dialog autofocus id="manager" aria-labelledby="manager-title" closedby="any">
+  <dialog autofocus id="manager" aria-labelledby="manager-title" data-dismiss-on-backdrop>
     <div class="dialog-header">
       <h2 id="manager-title">モデル管理</h2>
       <form method="dialog"><button class="close-button" aria-label="モデル管理を閉じる"><span aria-hidden="true">×</span></button></form>
@@ -312,7 +312,7 @@
     </div>
     <p class="model-license">モデルには<a href="https://plamo.preferredai.jp/info/plamo-community-license-ja" target="_blank" rel="noopener">PLaMoコミュニティライセンス</a>が適用されます。商用利用の場合は<a href="https://huggingface.co/pfnet/plamo-3-translate-0.8b-GGUF/blob/main/README_ja.md#ライセンス" target="_blank" rel="noopener">事前登録などの利用条件</a>を確認してください。</p>
   </dialog>
-  <dialog autofocus id="confirm-action" aria-labelledby="confirm-title" aria-describedby="confirm-description" closedby="any">
+  <dialog autofocus id="confirm-action" aria-labelledby="confirm-title" aria-describedby="confirm-description" data-dismiss-on-backdrop>
     <h2 id="confirm-title" tabindex="-1"></h2>
     <p id="confirm-description"></p>
     <form method="dialog" class="actions">
