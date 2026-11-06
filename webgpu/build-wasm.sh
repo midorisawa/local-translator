@@ -2,8 +2,12 @@
 set -eo pipefail
 
 if ! command -v uv >/dev/null; then
-  curl --fail --location --retry 3 https://astral.sh/uv/0.13.4/install.sh -o /tmp/translate-install-uv.sh
-  UV_INSTALL_DIR="$PWD/.local/bin" UV_NO_MODIFY_PATH=1 sh /tmp/translate-install-uv.sh
+  (
+    uv_stage=$(mktemp -d)
+    trap 'rm -rf -- "$uv_stage"' EXIT
+    curl --fail --location --retry 3 https://astral.sh/uv/0.13.4/install.sh -o "$uv_stage/install.sh"
+    UV_INSTALL_DIR="$PWD/.local/bin" UV_NO_MODIFY_PATH=1 sh "$uv_stage/install.sh"
+  )
   export PATH="$PWD/.local/bin:$PATH"
 fi
 
