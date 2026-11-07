@@ -11,6 +11,7 @@ let idleTimer;
 let warming;
 let cancelRequest;
 let runtimeGeneration = 0;
+let pageActive = true;
 export let runtimeDevice;
 
 export function resetRuntime() {
@@ -25,6 +26,14 @@ export function resetRuntime() {
   runtimeKey = undefined;
   runtimeDevice = undefined;
 }
+
+window.addEventListener("pagehide", () => {
+  pageActive = false;
+  resetRuntime();
+});
+window.addEventListener("pageshow", () => {
+  pageActive = true;
+});
 
 export async function translateInBrowser(body, onFragment, onStatus, selection) {
   const terms = body.glossary || [];
@@ -68,6 +77,9 @@ export function warmRuntime(selection) {
 }
 
 async function runInference(selection, prompt, onFragment, onStatus) {
+  if (!pageActive) {
+    throw new Error(t("ブラウザーの推論ランタイムを起動できませんでした。"));
+  }
   const key = `${selection.model}/${selection.device}`;
   if (runtimeKey !== key) resetRuntime();
   clearTimeout(idleTimer);
@@ -127,6 +139,9 @@ async function runInference(selection, prompt, onFragment, onStatus) {
 
   const result = await run(runtimeDevice || selection.device);
   if (result) return result;
+  if (generation !== runtimeGeneration) {
+    throw new Error(t("ブラウザーの推論ランタイムを起動できませんでした。"));
+  }
   if (selection.model === "31b") {
     resetRuntime();
     throw new Error(t("31BはCPU用のブラウザーメモリ上限を超えます。WebGPUと十分なメモリを備えた端末で試してください。"));

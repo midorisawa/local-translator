@@ -2,6 +2,10 @@ import { t } from "./i18n.js";
 
 let classifier;
 
+window.addEventListener("pagehide", () => {
+  classifier = undefined;
+});
+
 async function loadClassifier() {
   const metadata = await fetch(new URL("./langid.json", import.meta.url));
   const response = await fetch(new URL("./langid.bin.gz", import.meta.url));
@@ -17,11 +21,11 @@ async function loadClassifier() {
 }
 
 export async function detectLanguage(text) {
-  classifier ??= loadClassifier().catch((error) => {
-    classifier = undefined;
+  const pending = classifier ??= loadClassifier();
+  const { classes, moves, rows, output, priors, weights } = await pending.catch((error) => {
+    if (classifier === pending) classifier = undefined;
     throw error;
   });
-  const { classes, moves, rows, output, priors, weights } = await classifier;
   if (/\p{Uppercase}/u.test(text) && !/\p{Lowercase}/u.test(text)) text = text.toLowerCase();
   const counts = new Map();
   let state = 0;
