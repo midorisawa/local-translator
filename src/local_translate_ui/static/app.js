@@ -679,7 +679,7 @@ function saveTranslationOptions() {
   }
 }
 
-function selectedTerms() {
+function selectedTerms(presets = selectedGlossaries()) {
   const terms = new Map();
   const reversed = [];
   function addTerm(source, target) {
@@ -689,7 +689,7 @@ function selectedTerms() {
     }
     terms.set(source, { source, target });
   }
-  for (const preset of selectedGlossaries()) {
+  for (const preset of presets) {
     for (const term of preset.terms) {
       if (term.enabled === false) continue;
       addTerm(term.source, term.target);
@@ -799,6 +799,11 @@ $("glossary-form").addEventListener("submit", (event) => {
     const name = $("glossary-name").value.trim();
     const terms = glossary();
     if (!name || !terms.length) throw new Error(t("名前と用語を1組以上入力してください。"));
+    if (selectedGlossaryIds.has(editingGlossaryId)) {
+      const updatedPresets = selectedGlossaries().map((preset) =>
+        preset.id === editingGlossaryId ? { ...preset, terms } : preset);
+      selectedTerms(updatedPresets);
+    }
     changeGlossary("PUT", editingGlossaryId || crypto.randomUUID(), { name, terms });
   } catch (error) {
     feedback("glossary-feedback", error.message, true);
