@@ -404,7 +404,7 @@ function renderModels() {
   const error = state.loading ? "" : state.error || "";
   feedback("status", error, Boolean(error));
 
-  for (const entry of [...state.models].reverse()) {
+  for (const entry of state.models) {
     if (!rows.has(entry.id)) {
       const row = document.createElement("div");
       row.className = "model-row";
