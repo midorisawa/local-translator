@@ -79,6 +79,7 @@ const english = new Map([
   ["このモデルを選ぶ", "Use this model"],
   ["翻訳", "Translate"],
   ["翻訳先の言語", "Target language"],
+  ["やさしい日本語", "Easy Japanese"],
   ["訳文", "Translation"],
   ["翻訳結果がここに表示されます", "Your translation will appear here"],
   ["訳文をコピー", "Copy translation"],

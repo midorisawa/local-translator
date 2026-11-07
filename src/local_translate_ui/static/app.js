@@ -1274,6 +1274,7 @@ async function init() {
     for (const { code, name } of sortedLanguages) {
       source.add(new Option(name, code));
       target.add(new Option(name, code));
+      if (code === "ja") target.add(new Option(t("やさしい日本語"), "ja(easy)"));
       nativeLanguage.add(new Option(name, code));
       frequentLanguage.add(new Option(name, code));
     }
