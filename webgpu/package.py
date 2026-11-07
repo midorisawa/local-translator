@@ -23,6 +23,7 @@ runtime.mkdir(parents=True, exist_ok=True)
 for filename in (
     "app.js", "i18n.js", "styles.css", "webgpu.js", "webgpu-worker.js",
     "browser-api.js", "browser-models.js", "browser-records.js", "browser-langid.js", "local-translator.png",
+    "local-translator-ogp.png",
 ):
     shutil.copyfile(source / filename, static / filename)
 shutil.copytree(source / "locales", static / "locales", dirs_exist_ok=True)

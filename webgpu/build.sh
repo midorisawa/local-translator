@@ -24,7 +24,7 @@ for runtime in runtime runtime/cpu runtime/gpu64 runtime/cpu64; do
 done
 
 source=src/local_translate_ui/static
-cp "$source"/*.js "$source"/*.css "$source/local-translator.png" "$site/static/"
+cp "$source"/*.js "$source"/*.css "$source/local-translator.png" "$source/local-translator-ogp.png" "$site/static/"
 cp -R "$source/locales" "$site/static/"
 cp "$source/index.html" LICENSE "$site/"
 
