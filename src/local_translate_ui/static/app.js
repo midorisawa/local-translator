@@ -1,6 +1,8 @@
 import { localizePage, preferredLocale, t, uiLocale } from "./i18n.js";
+import { setupTooltips } from "./tooltips.js";
 
 localizePage();
+setupTooltips(document.getElementById("tooltip"));
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register(new URL("../service-worker.js", import.meta.url), { type: "module" })
@@ -42,7 +44,7 @@ function updateTheme() {
   const dark = manual ? theme === "dark" : systemTheme.matches;
   if (manual) document.documentElement.dataset.theme = theme;
   themeToggle.setAttribute("aria-pressed", String(dark));
-  themeToggle.title = dark ? t("ライトモードに切り替える") : t("ダークモードに切り替える");
+  themeToggle.dataset.tooltip = dark ? t("ライトモードに切り替える") : t("ダークモードに切り替える");
   if (manual) {
     for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
       meta.content = dark ? "#171719" : "#ffffff";
@@ -381,7 +383,7 @@ function updateControls() {
   const targetName = target.selectedOptions[0]?.textContent;
   const targetLabel = t("翻訳先の言語");
   const pickerLabel = targetName ? `${targetLabel} · ${targetName}` : targetLabel;
-  targetPicker.title = pickerLabel;
+  targetPicker.dataset.tooltip = pickerLabel;
   targetPicker.setAttribute("aria-label", pickerLabel);
   $("edit-native-language").disabled = translating || !savedNativeLanguage;
   text.readOnly = $("context").readOnly = translating;
@@ -407,7 +409,7 @@ function renderModelPicker() {
   const usingGpu = (modelDraft?.device || state.preferred_device) === "gpu";
   $("model-gpu-indicator").toggleAttribute("hidden", actualDevice !== "gpu" || !active);
   device.setAttribute("aria-pressed", String(usingGpu));
-  device.title = usingGpu ? t("CPUに切り替える") :
+  device.dataset.tooltip = usingGpu ? t("CPUに切り替える") :
     state.gpu_available ? t("GPUに切り替える") : t("GPUを利用できません");
   feedback("device-note",
     modelDraft && (modelDraft.model !== modelDraft.initialModel || modelDraft.device !== modelDraft.initialDevice)
@@ -467,7 +469,7 @@ function renderModels() {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "model-delete";
-      remove.title = t("削除");
+      remove.dataset.tooltip = t("削除");
       remove.setAttribute("aria-label", t("PLaMo Translate {0}を削除", label(entry.id)));
       remove.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v6m4-6v6"/></svg>';
       remove.addEventListener("click", async () => {
@@ -546,7 +548,7 @@ function renderModels() {
     button.disabled = !running && Boolean(entry.unavailable);
     button.dataset.running = String(running);
     const action = running ? t("ダウンロードを中止") : download?.error ? t("ダウンロードを再試行") : t("ダウンロード");
-    button.title = action;
+    button.dataset.tooltip = action;
     button.setAttribute("aria-label", t("{0}の{1}", modelLabel(entry.id), action));
     button.querySelector("path").setAttribute("d", running ? "M7 7h10v10H7z" : "M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4");
   }
@@ -1204,7 +1206,7 @@ function updateHistoryEditing() {
   $("history-list").toggleAttribute("data-editing", editingHistory);
   $("edit-history").setAttribute("aria-pressed", String(editingHistory));
   $("edit-history").setAttribute("aria-expanded", String(!menu.hidden));
-  $("edit-history").title = editingHistory ? t("履歴の編集メニュー") : t("履歴を編集");
+  $("edit-history").dataset.tooltip = editingHistory ? t("履歴の編集メニュー") : t("履歴を編集");
   $("edit-history").disabled = deletingHistory;
   $("delete-history").hidden = !editingHistory;
   $("delete-history").disabled = deletingHistory || !selectedHistory.size;
@@ -1276,7 +1278,6 @@ async function loadHistory() {
       const row = $("history-entry").content.firstElementChild.cloneNode(true);
       const open = row.querySelector(".history-restore");
       open.textContent = title;
-      open.title = title;
       const checkbox = row.querySelector(".history-select");
       checkbox.value = id;
       checkbox.checked = selectedHistory.has(id);

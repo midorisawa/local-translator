@@ -13,7 +13,7 @@ def package_site(output, model_url=""):
     app_assets = (
         "app.js", "i18n.js", "styles.css", "webgpu.js", "webgpu-worker.js",
         "browser-api.js", "browser-models.js", "browser-records.js", "browser-langid.js",
-        "local-translator-ogp.png", "offline-cache.js",
+        "local-translator-ogp.png", "offline-cache.js", "tooltips.js",
     )
     for filename in (*app_assets, "local-translator.png"):
         shutil.copyfile(source / filename, static / filename)

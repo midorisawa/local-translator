@@ -84,6 +84,7 @@ const english = new Map([
   ["GPUを使用", "Use GPU"],
   ["モデル管理を開く", "Open model manager"],
   ["使用するモデル", "Model to use"],
+  ["モデル選択", "Select model"],
   ["このモデルを選ぶ", "Use this model"],
   ["翻訳", "Translate"],
   ["翻訳先の言語", "Target language"],
@@ -252,7 +253,8 @@ const english = new Map([
   ["元の翻訳履歴が見つかりません。", "The original history entry could not be found."],
 ]);
 
-const glossaryTranslationAliases = {
+const translationAliases = {
+  "モデル選択": "モデルを選択",
   "＋新規作成": "＋新しい用語集",
   "読み込む": "インポート",
   "すべて書き出す": "エクスポート",
@@ -260,7 +262,7 @@ const glossaryTranslationAliases = {
 
 export function t(message, ...values) {
   const localized = uiLocale === "ja" ? message :
-    messages?.[message] ?? messages?.[glossaryTranslationAliases[message]] ?? english.get(message) ?? message;
+    messages?.[message] ?? messages?.[translationAliases[message]] ?? english.get(message) ?? message;
   return values.length ? localized.replace(/\{(\d+)\}/g, (_, index) => values[index]) : localized;
 }
 
@@ -278,7 +280,7 @@ export function localizePage() {
         if (english.has(message)) node.data = node.data.replace(message, () => t(message));
         continue;
       }
-      for (const attribute of ["aria-label", "title", "placeholder"]) {
+      for (const attribute of ["aria-label", "data-tooltip", "placeholder"]) {
         const message = node.getAttribute(attribute);
         if (english.has(message)) node.setAttribute(attribute, t(message));
       }

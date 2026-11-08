@@ -177,27 +177,28 @@ summary { cursor: pointer; border-radius: var(--control-radius); }
 .source-actions .translate-control { margin-inline-start: auto; }
 .retranslate-control { max-width: 100%; border-radius: 999px; overflow-wrap: anywhere; }
 .loading-button { position: relative; }
-.translate-shortcut {
-  display: none;
-  position: absolute;
-  z-index: 1;
-  bottom: calc(100% + .4rem);
-  left: 50%;
-  transform: translateX(-50%);
+#tooltip {
+  position: fixed;
+  inset: auto;
+  max-width: min(24rem, calc(100% - 1rem));
+  margin: 0;
+  border: 0;
   padding: .25rem .5rem;
   border-radius: 6px;
   background: #202123;
   color: white;
   box-shadow: 0 2px 8px #0003;
   font: 600 .75rem/1.4 system-ui, sans-serif;
-  white-space: nowrap;
-  pointer-events: none;
+  overflow: visible;
+  overflow-wrap: anywhere;
 }
-@media (hover: hover) {
-  #translate:hover .translate-shortcut { display: block; }
+#tooltip::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: 6px;
 }
-#translate:focus-visible .translate-shortcut { display: block; }
-#translate { position: relative; }
+#tooltip[data-below]::after { inset: auto 0 100%; }
 .loading-button .loading-label { color: inherit; font-size: inherit; margin: 0; }
 .loading-button[aria-busy="true"] .loading-label { opacity: 0; }
 .loading-button .loading-spinner { display: none; }
