@@ -82,6 +82,7 @@ let savedFrequentLanguage = "";
 const text = $("text");
 const output = $("output");
 const resultLanguages = new WeakMap();
+const stoppedResults = new WeakSet();
 const copyTimers = new WeakMap();
 const form = $("form");
 const panes = document.querySelector(".panes");
@@ -215,6 +216,7 @@ function resetResults() {
   firstResult.querySelector(".elapsed").textContent = "";
   clearCopied(firstResult);
   resultLanguages.delete(firstResult);
+  stoppedResults.delete(firstResult);
   showPanes(0, "instant");
 }
 
@@ -370,10 +372,12 @@ function updateControls() {
   for (const pane of panes.querySelectorAll(".result")) {
     const field = pane.querySelector("textarea");
     field.readOnly = translating;
-    const complete = resultLanguages.has(pane) && Boolean(field.value.trim());
+    const hasText = Boolean(field.value.trim());
+    const complete = resultLanguages.has(pane) && hasText;
+    const canCopy = complete || (stoppedResults.has(pane) && hasText);
     const copy = pane.querySelector(".copy-result");
-    copy.hidden = !complete;
-    copy.disabled = translating || !complete;
+    copy.hidden = !canCopy;
+    copy.disabled = translating || !canCopy;
     pane.querySelector(".retranslate-control").hidden = !complete;
     const disabled = busy || waitingForModel || !state.models.length || !complete;
     pane.querySelector(".retranslate").disabled = disabled;
@@ -1037,6 +1041,7 @@ $("translation").addEventListener("submit", async (event) => {
     if (result.text && !result.history_error) loadHistory();
   } catch (error) {
     const stopped = translationController?.signal.aborted;
+    if (stopped) stoppedResults.add(firstResult);
     feedback("feedback", stopped ? t("翻訳を停止しました。") : error.message, !stopped);
   } finally {
     finishTranslation($("translate"));
@@ -1160,6 +1165,7 @@ async function retranslate(pane, selectedLanguage) {
       showPanes(firstVisiblePane);
     }
     const stopped = translationController?.signal.aborted;
+    if (stopped) stoppedResults.add(next);
     feedback("feedback", stopped ? t("翻訳を停止しました。") : error.message, !stopped);
   } finally {
     finishTranslation(pane.querySelector(".retranslate"));
