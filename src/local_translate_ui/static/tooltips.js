@@ -13,9 +13,10 @@ export function setupTooltips(tooltip) {
     if (active !== trigger) {
       attributes.disconnect();
       active = trigger;
-      if (active) attributes.observe(active, { attributeFilter: ["data-tooltip"] });
+      if (active) attributes.observe(active, { attributeFilter: ["data-tooltip", "hidden"] });
     }
-    const label = active?.isConnected && !active.matches("details[open] > summary") && active.dataset.tooltip;
+    const label = active?.isConnected && !active.hidden &&
+      !active.matches("details[open] > summary") && active.dataset.tooltip;
     if (!label) {
       tooltip.hidePopover();
       return;

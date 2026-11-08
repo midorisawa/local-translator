@@ -370,8 +370,10 @@ function updateControls() {
   for (const pane of panes.querySelectorAll(".result")) {
     const field = pane.querySelector("textarea");
     field.readOnly = translating;
-    pane.querySelector(".copy-result").disabled = translating || !field.value.trim();
     const complete = resultLanguages.has(pane) && Boolean(field.value.trim());
+    const copy = pane.querySelector(".copy-result");
+    copy.hidden = !complete;
+    copy.disabled = translating || !complete;
     pane.querySelector(".retranslate-control").hidden = !complete;
     const disabled = busy || waitingForModel || !state.models.length || !complete;
     pane.querySelector(".retranslate").disabled = disabled;
