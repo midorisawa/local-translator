@@ -10,7 +10,7 @@
   "theme_color": "#171719",
   "icons": [
     {
-      "src": "./static/local-translator.png",
+      "src": "./static/local-translator-ogp.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

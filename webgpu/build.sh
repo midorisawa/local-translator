@@ -23,10 +23,7 @@ for runtime in runtime runtime/cpu runtime/gpu64 runtime/cpu64; do
   require_asset "$runtime/plamo.wasm"
 done
 
-source=src/local_translate_ui/static
-cp "$source"/*.js "$source"/*.css "$source/local-translator.png" "$source/local-translator-ogp.png" "$site/static/"
-cp -R "$source/locales" "$site/static/"
-cp "$source/index.html" LICENSE "$site/"
+python3 webgpu/package_site.py "$site"
 
 rm -rf -- .local/webgpu-site
 mv -T "$site" .local/webgpu-site
