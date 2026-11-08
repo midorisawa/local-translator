@@ -138,8 +138,8 @@ export function recordApi(path, method, body) {
     const preset = { ...glossary(body), id };
     return records(key, (entries) => {
       const index = entries.findIndex((entry) => entry.id === id);
-      if (index !== -1) entries.splice(index, 1);
-      entries.push(preset);
+      if (index === -1) entries.push(preset);
+      else entries[index] = preset;
       return preset;
     });
   }

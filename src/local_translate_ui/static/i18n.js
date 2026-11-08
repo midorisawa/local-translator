@@ -98,6 +98,19 @@ const english = new Map([
   ["保存済みの用語集", "Saved glossaries"],
   ["＋新しい用語集", "＋ New glossary"],
   ["用語集を選択", "Select a glossary"],
+  ["＋新規作成", "＋ New glossary"],
+  ["読み込む", "Import"],
+  ["すべて書き出す", "Export all"],
+  ["編集", "Edit"],
+  ["閉じる", "Close"],
+  ["「新規作成」で用語集を作成できます。保存済みの用語集を変更するには、その用語集の「編集」を選びます。", "Choose New glossary to create one, or Edit next to a saved glossary to change it."],
+  ["有効 {0} / {1}組", "{0} / {1} terms enabled"],
+  ["適用する用語 {0} / 20組", "{0} / 20 terms to apply"],
+  ["選択中 {0}件 · {1}", "{0} selected · {1}"],
+  ["「{0}」を編集", "Edit “{0}”"],
+  ["用語 {0}", "Term {0}"],
+  ["保存していない変更を破棄しますか？", "Discard unsaved changes?"],
+  ["破棄する", "Discard"],
   ["インポート", "Import"],
   ["エクスポート", "Export"],
   ["新しい用語集", "New glossary"],
@@ -229,8 +242,15 @@ const english = new Map([
   ["元の翻訳履歴が見つかりません。", "The original history entry could not be found."],
 ]);
 
+const glossaryTranslationAliases = {
+  "＋新規作成": "＋新しい用語集",
+  "読み込む": "インポート",
+  "すべて書き出す": "エクスポート",
+};
+
 export function t(message, ...values) {
-  const localized = uiLocale === "ja" ? message : messages?.[message] ?? english.get(message) ?? message;
+  const localized = uiLocale === "ja" ? message :
+    messages?.[message] ?? messages?.[glossaryTranslationAliases[message]] ?? english.get(message) ?? message;
   return values.length ? localized.replace(/\{(\d+)\}/g, (_, index) => values[index]) : localized;
 }
 

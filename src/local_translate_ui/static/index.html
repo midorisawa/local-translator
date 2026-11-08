@@ -129,7 +129,9 @@
                 <div class="settings-panel options">
                   <fieldset id="active-glossary" class="glossary-picker">
                     <legend>適用する用語集</legend>
+                    <p id="glossary-picker-count" class="glossary-meta"></p>
                     <div id="glossary-choices">保存した用語集はここに表示されます。</div>
+                    <p id="glossary-picker-feedback" class="glossary-meta" role="status"></p>
                     <button id="new-glossary" type="button">＋用語集を追加</button>
                   </fieldset>
                   <label id="form-label" for="form" hidden>日本語訳の文体</label>
@@ -246,52 +248,62 @@
         <h2 id="glossary-title">用語集の管理</h2>
         <p>翻訳で使う訳語を、用語集ごとにまとめられます。</p>
       </div>
-      <form method="dialog"><button class="close-button" aria-label="用語集の管理を閉じる"><span aria-hidden="true">×</span></button></form>
+      <button id="close-glossary-manager" class="close-button" type="button" aria-label="用語集の管理を閉じる"><span aria-hidden="true">×</span></button>
     </div>
-    <form id="glossary-form" class="glossary-manager">
-      <div class="glossary-navigation">
-        <label for="glossary-presets">保存済みの用語集</label>
-        <div class="glossary-switcher">
-          <select id="glossary-presets"></select>
-          <button id="create-glossary" type="button">＋新しい用語集</button>
+    <div id="glossary-workspace">
+      <section class="glossary-library" aria-labelledby="glossary-library-title">
+        <div class="glossary-heading">
+          <h3 id="glossary-library-title">適用する用語集</h3>
+          <button id="create-glossary" type="button">＋新規作成</button>
         </div>
+        <p id="glossary-library-count" class="glossary-meta"></p>
+        <div id="glossary-library-choices"></div>
+        <p id="glossary-library-feedback" class="glossary-meta" role="status"></p>
         <div class="glossary-file-actions">
-          <button id="import-glossaries" type="button">インポート</button>
-          <button id="export-glossaries" type="button">エクスポート</button>
+          <button id="import-glossaries" type="button">読み込む</button>
+          <button id="export-glossaries" type="button">すべて書き出す</button>
           <input id="glossary-file" type="file" accept=".json,application/json" hidden>
         </div>
-      </div>
+        <p id="glossary-file-feedback" class="glossary-meta" role="status"></p>
+      </section>
       <section class="glossary-editor" aria-labelledby="glossary-editor-title">
-      <div class="glossary-editor-heading">
-        <h3 id="glossary-editor-title">新しい用語集</h3>
-        <button id="delete-glossary" class="loading-button" type="button" disabled><span class="loading-label">用語集を削除</span><span class="loading-spinner" aria-hidden="true"></span></button>
-      </div>
-      <label for="glossary-name">用語集の名前</label>
-      <input id="glossary-name" maxlength="80" required placeholder="例：製品ドキュメント">
-      <fieldset class="glossary">
-        <legend>用語 <span id="glossary-term-count"></span></legend>
-        <div id="glossary"></div>
-        <button id="add-term" type="button">＋用語を追加</button>
-        <template id="glossary-row">
-          <div class="glossary-row">
-            <label class="term-first"><span>原語</span><input type="text" maxlength="200" placeholder="例：dashboard"></label>
-            <button class="term-direction" type="button" aria-pressed="false"><span aria-hidden="true">→</span></button>
-            <label class="term-second"><span>訳語</span><input type="text" maxlength="200" placeholder="例：管理画面"></label>
-            <div class="term-actions">
-              <label class="term-enabled"><input type="checkbox" checked>有効</label>
-              <button type="button" aria-label="この用語を削除">削除</button>
+        <h3 id="glossary-editor-title" tabindex="-1">用語集を編集</h3>
+        <p id="glossary-editor-empty" class="glossary-meta">「新規作成」で用語集を作成できます。保存済みの用語集を変更するには、その用語集の「編集」を選びます。</p>
+        <form id="glossary-form" hidden>
+          <label for="glossary-name">用語集の名前</label>
+          <input id="glossary-name" maxlength="80" required placeholder="例：製品ドキュメント">
+          <div class="glossary-heading glossary-term-heading">
+            <h4>用語</h4>
+            <span id="glossary-term-count" class="glossary-meta"></span>
+          </div>
+          <div id="glossary"></div>
+          <button id="add-term" type="button">＋用語を追加</button>
+          <div class="glossary-editor-footer">
+            <button id="delete-glossary" class="loading-button" type="button" hidden><span class="loading-label">用語集を削除</span><span class="loading-spinner" aria-hidden="true"></span></button>
+            <div class="glossary-save-actions">
+              <button id="close-glossary-editor" type="button">閉じる</button>
+              <button id="save-glossary" class="primary loading-button"><span class="loading-label">保存</span><span class="loading-spinner" aria-hidden="true"></span></button>
             </div>
           </div>
-        </template>
-      </fieldset>
+        </form>
+        <p id="glossary-feedback" class="glossary-meta" role="status"></p>
       </section>
-      <div class="glossary-editor-footer">
-        <div class="actions">
-          <p id="glossary-feedback" role="status"></p>
-          <button id="save-glossary" class="primary loading-button"><span class="loading-label">保存</span><span class="loading-spinner" aria-hidden="true"></span></button>
+    </div>
+    <template id="glossary-row">
+      <fieldset class="glossary-row">
+        <legend></legend>
+        <div class="glossary-term-pair">
+          <label><span>原語</span><input type="text" maxlength="200" placeholder="例：dashboard"></label>
+          <span class="term-direction" aria-hidden="true">→</span>
+          <label><span>訳語</span><input type="text" maxlength="200" placeholder="例：管理画面"></label>
         </div>
-      </div>
-    </form>
+        <div class="term-actions">
+          <label><input type="checkbox" checked>有効</label>
+          <label><input type="checkbox">双方向に適用</label>
+          <button type="button" aria-label="この用語を削除">削除</button>
+        </div>
+      </fieldset>
+    </template>
   </dialog>
   <dialog autofocus id="manager" aria-labelledby="manager-title" data-dismiss-on-backdrop>
     <div class="dialog-header">

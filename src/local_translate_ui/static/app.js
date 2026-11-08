@@ -89,6 +89,9 @@ const rows = new Map();
 let glossaryPresets = [];
 let selectedGlossaryIds = new Set();
 const activeGlossary = $("active-glossary");
+const glossaryDialog = $("glossary-dialog");
+const glossaryWorkspace = $("glossary-workspace");
+const glossaryForm = $("glossary-form");
 let editingGlossaryId = "";
 const translationSettings = activeGlossary.closest("details");
 const settingsPanel = translationSettings.querySelector(".settings-panel");
@@ -291,6 +294,7 @@ function feedback(id, message, error = false) {
   element.classList.toggle("error", error);
   if (id === "glossary-feedback") {
     clearTimeout(glossaryFeedbackTimer);
+    if (error) element.scrollIntoView({ block: "nearest" });
     if (message && !error) {
       glossaryFeedbackTimer = setTimeout(() => feedback(id, ""), 3000);
     }
@@ -614,54 +618,63 @@ modelPicker.addEventListener("toggle", async () => {
   renderModelPicker();
   updateControls();
 });
+function glossaryTextChanged(input) {
+  return input.value !== input.defaultValue.replace(/[\r\n]/g, "");
+}
+
+function readGlossaryText(input) {
+  return glossaryTextChanged(input) ? input.value.trim() : input.defaultValue;
+}
+
 function glossary() {
   const terms = [];
   for (const [index, row] of Array.from($("glossary").children).entries()) {
-    const [original, translation, enabled] = row.querySelectorAll("input");
-    const source = original.value.trim();
-    const target = translation.value.trim();
-    const bidirectional = row.querySelector(".term-direction").getAttribute("aria-pressed") === "true";
+    const [original, translation, enabled, bidirectional] = row.querySelectorAll("input");
+    const source = readGlossaryText(original);
+    const target = readGlossaryText(translation);
     if (!source && !target) continue;
     if (!source || !target) {
       throw new Error(t("用語集の{0}行目の両方の欄に用語を入力してください。", index + 1));
     }
-    terms.push({ source, target, enabled: enabled.checked, bidirectional });
+    terms.push({ source, target, enabled: enabled.checked, bidirectional: bidirectional.checked });
   }
   return terms;
 }
 
 function addGlossaryRow(term = {}) {
   const row = $("glossary-row").content.firstElementChild.cloneNode(true);
-  const [original, translation, enabled] = row.querySelectorAll("input");
-  original.value = term.source || "";
-  translation.value = term.target || "";
-  enabled.checked = term.enabled !== false;
+  const [original, translation, enabled, bidirectional] = row.querySelectorAll("input");
+  original.defaultValue = term.source || "";
+  translation.defaultValue = term.target || "";
+  enabled.defaultChecked = term.enabled !== false;
+  bidirectional.defaultChecked = term.bidirectional === true;
   const direction = row.querySelector(".term-direction");
-  direction.setAttribute("aria-label", t("双方向に適用"));
-  direction.title = t("双方向に適用");
-  function setDirection(bidirectional) {
-    direction.setAttribute("aria-pressed", String(bidirectional));
-    direction.firstElementChild.textContent = bidirectional ? "↔" : "→";
-    row.querySelector(".term-first span").textContent = t(bidirectional ? "用語1" : "原語");
-    row.querySelector(".term-second span").textContent = t(bidirectional ? "用語2" : "訳語");
+  const [sourceLabel, targetLabel] = row.querySelectorAll(".glossary-term-pair label span");
+  function showDirection() {
+    direction.textContent = bidirectional.checked ? "↔" : "→";
+    sourceLabel.textContent = t(bidirectional.checked ? "用語1" : "原語");
+    targetLabel.textContent = t(bidirectional.checked ? "用語2" : "訳語");
   }
-  setDirection(term.bidirectional === true);
-  direction.addEventListener("click", () => setDirection(direction.getAttribute("aria-pressed") === "false"));
-  row.querySelector(".term-actions button").addEventListener("click", async () => {
-    if ((original.value.trim() || translation.value.trim()) &&
-        !(await confirmAction(t("この用語を削除しますか？"),
-          t("入力した2つの用語を編集欄から取り除きます。"), t("削除する")))) return;
+  showDirection();
+  bidirectional.addEventListener("change", showDirection);
+  row.querySelector(".term-actions button").addEventListener("click", () => {
+    const adjacent = row.nextElementSibling ?? row.previousElementSibling;
     row.remove();
     updateGlossaryRows();
+    (adjacent?.querySelector("input") ?? $("add-term")).focus();
   });
   $("glossary").append(row);
   updateGlossaryRows();
+  return original;
 }
 
 function updateGlossaryRows() {
   const count = $("glossary").childElementCount;
   $("glossary-term-count").textContent = t("{0} / 20行", count);
   $("add-term").disabled = count >= 20;
+  Array.from($("glossary").children).forEach((row, index) => {
+    row.querySelector("legend").textContent = t("用語 {0}", index + 1);
+  });
 }
 
 function selectedGlossaries() {
@@ -703,44 +716,97 @@ function selectedTerms(presets = selectedGlossaries()) {
 
 function renderGlossaryOptions() {
   $("export-glossaries").disabled = !glossaryPresets.length;
-  renderGlossaryPresets();
-  const choices = $("glossary-choices");
+  feedback("glossary-picker-feedback", "");
+  feedback("glossary-library-feedback", "");
+  renderGlossaryChoices($("glossary-choices"), false);
+  renderGlossaryChoices($("glossary-library-choices"), true);
+  updateGlossarySelection();
+}
+
+function renderGlossaryChoices(choices, editable) {
   choices.replaceChildren();
-  if (!glossaryPresets.length) choices.textContent = t("保存した用語集はここに表示されます。");
+  if (!glossaryPresets.length) choices.textContent = t("保存済みの用語集はありません。");
   for (const preset of glossaryPresets) {
+    const row = document.createElement("div");
+    row.className = "glossary-choice";
     const label = document.createElement("label");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.value = preset.id;
-    checkbox.checked = selectedGlossaryIds.has(preset.id);
-    label.append(checkbox, preset.name);
-    choices.append(label);
+    const description = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = preset.name;
+    const meta = document.createElement("small");
+    const enabled = preset.terms.filter((term) => term.enabled !== false).length;
+    meta.textContent = t("有効 {0} / {1}組", enabled, preset.terms.length);
+    description.append(title, meta);
+    label.append(checkbox, description);
+    row.append(label);
+    if (editable) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.value = preset.id;
+      button.textContent = t("編集");
+      button.setAttribute("aria-label", t("「{0}」を編集", preset.name));
+      button.addEventListener("click", () => switchGlossaryEditor(preset.id));
+      row.append(button);
+    }
+    choices.append(row);
   }
+}
+
+function updateGlossarySelection() {
+  for (const checkbox of document.querySelectorAll("#glossary-choices input, #glossary-library-choices input")) {
+    checkbox.checked = selectedGlossaryIds.has(checkbox.value);
+  }
+  const selected = selectedGlossaries();
+  const sources = new Set(selected.flatMap(({ terms }) =>
+    terms.filter((term) => term.enabled !== false).map((term) => term.source)));
+  const count = t("適用する用語 {0} / 20組", sources.size);
+  $("glossary-picker-count").textContent = count;
+  $("glossary-library-count").textContent = t("選択中 {0}件 · {1}", selected.length, count);
   updateControls();
 }
 
-function renderGlossaryPresets() {
-  const select = $("glossary-presets");
-  const placeholder = new Option(t(glossaryPresets.length ? "用語集を選択" : "保存済みの用語集はありません。"), "");
-  placeholder.disabled = true;
-  select.replaceChildren(placeholder);
-  for (const preset of glossaryPresets) {
-    select.add(new Option(preset.name, preset.id));
+function syncGlossaryEditor() {
+  for (const button of $("glossary-library-choices").querySelectorAll("button")) {
+    if (button.value === editingGlossaryId) button.setAttribute("aria-current", "true");
+    else button.removeAttribute("aria-current");
   }
-  select.value = glossaryPresets.some((preset) => preset.id === editingGlossaryId) ? editingGlossaryId : "";
-  select.disabled = !glossaryPresets.length;
 }
 
 function openGlossaryEditor(id) {
   const preset = glossaryPresets.find((item) => item.id === id);
   editingGlossaryId = preset?.id || "";
-  renderGlossaryPresets();
-  $("glossary-editor-title").textContent = preset ? t("用語集を編集") : t("新しい用語集");
-  $("glossary-name").value = preset?.name || "";
+  syncGlossaryEditor();
+  glossaryForm.hidden = id === undefined;
+  $("glossary-editor-empty").hidden = !glossaryForm.hidden;
+  $("glossary-editor-title").textContent = preset?.name ?? t(glossaryForm.hidden ? "用語集を編集" : "新しい用語集");
+  $("glossary-name").defaultValue = preset?.name || "";
+  $("glossary-name").value = $("glossary-name").defaultValue;
   $("glossary").replaceChildren();
-  for (const term of preset?.terms || [{}]) addGlossaryRow(term);
-  $("delete-glossary").disabled = !preset;
+  if (!glossaryForm.hidden) for (const term of preset?.terms ?? [{}]) addGlossaryRow(term);
+  $("delete-glossary").hidden = !preset;
   feedback("glossary-feedback", "");
+}
+
+function confirmGlossaryDiscard() {
+  if (glossaryForm.hidden) return true;
+  const name = $("glossary-name");
+  const preset = glossaryPresets.find((item) => item.id === editingGlossaryId);
+  const inputs = Array.from(glossaryForm.querySelectorAll("#glossary input"));
+  const remainingSavedTerms = Array.from($("glossary").children).filter((row) => row.querySelector("input").defaultValue).length;
+  const changed = remainingSavedTerms !== (preset?.terms.length ?? 0) || [name, ...inputs].some((input) =>
+    input.type === "checkbox" ? input.checked !== input.defaultChecked : glossaryTextChanged(input));
+  return !changed || confirmAction(t("保存していない変更を破棄しますか？"), "", t("破棄する"));
+}
+
+async function switchGlossaryEditor(id) {
+  if (!(await confirmGlossaryDiscard())) return;
+  const previous = $("glossary-library-choices").querySelector("[aria-current]");
+  openGlossaryEditor(id);
+  if (id === undefined) (previous ?? $("create-glossary")).focus();
+  else $(id ? "glossary-editor-title" : "glossary-name").focus();
 }
 
 async function loadGlossaries() {
@@ -748,30 +814,39 @@ async function loadGlossaries() {
   renderGlossaryOptions();
 }
 
-$("add-term").addEventListener("click", () => addGlossaryRow());
-$("create-glossary").addEventListener("click", () => openGlossaryEditor(""));
-$("glossary-presets").addEventListener("change", (event) => openGlossaryEditor(event.currentTarget.value));
+$("add-term").addEventListener("click", () => addGlossaryRow().focus());
+$("create-glossary").addEventListener("click", () => switchGlossaryEditor(""));
+$("close-glossary-editor").addEventListener("click", () => switchGlossaryEditor());
+async function closeGlossaryManager() {
+  if (!glossaryWorkspace.inert && await confirmGlossaryDiscard()) glossaryDialog.close();
+}
+$("close-glossary-manager").addEventListener("click", closeGlossaryManager);
+glossaryDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeGlossaryManager();
+});
 async function showGlossaryEditor(createNew) {
-  const editor = $("glossary-form");
-  editor.inert = true;
-  $("glossary-dialog").showModal();
+  openGlossaryEditor();
+  feedback("glossary-file-feedback", "");
+  glossaryWorkspace.inert = true;
+  glossaryDialog.showModal();
   try {
     await loadGlossaries();
-    openGlossaryEditor(createNew ? "" : selectedGlossaries()[0]?.id || glossaryPresets[0]?.id);
+    if (createNew) openGlossaryEditor("");
   } catch (error) {
     feedback("glossary-feedback", error.message, true);
   } finally {
-    editor.inert = false;
+    glossaryWorkspace.inert = false;
   }
+  $(glossaryForm.hidden ? "create-glossary" : "glossary-name").focus();
 }
 
 $("manage-glossaries").addEventListener("click", () => showGlossaryEditor(false));
 $("new-glossary").addEventListener("click", () => showGlossaryEditor(true));
 
 async function changeGlossary(method, id, payload) {
-  const editor = $("glossary-form");
   const button = $(method === "PUT" ? "save-glossary" : "delete-glossary");
-  editor.inert = true;
+  glossaryWorkspace.inert = true;
   button.setAttribute("aria-busy", "true");
   feedback("glossary-feedback", "");
   try {
@@ -779,24 +854,26 @@ async function changeGlossary(method, id, payload) {
       api(`glossaries/${id}`, method, payload),
       new Promise((resolve) => setTimeout(resolve, 350)),
     ]);
-    glossaryPresets = glossaryPresets.filter((preset) => preset.id !== id);
-    if (method === "PUT") glossaryPresets.push(result);
-    else if (selectedGlossaryIds.delete(id)) saveTranslationOptions();
+    const index = glossaryPresets.findIndex((preset) => preset.id === id);
+    if (method === "PUT") glossaryPresets.splice(index < 0 ? glossaryPresets.length : index, 1, result);
+    else glossaryPresets = glossaryPresets.filter((preset) => preset.id !== id);
+    if (method === "DELETE" && selectedGlossaryIds.delete(id)) saveTranslationOptions();
     renderGlossaryOptions();
-    openGlossaryEditor(method === "PUT" ? id : glossaryPresets[0]?.id);
+    openGlossaryEditor(method === "PUT" ? id : undefined);
     feedback("glossary-feedback", method === "PUT" ? t("保存しました") : t("削除しました"));
   } catch (error) {
     feedback("glossary-feedback", error.message, true);
   } finally {
     button.setAttribute("aria-busy", "false");
-    editor.inert = false;
+    glossaryWorkspace.inert = false;
+    (button.hidden ? $("create-glossary") : button).focus();
   }
 }
 
 $("glossary-form").addEventListener("submit", (event) => {
   event.preventDefault();
   try {
-    const name = $("glossary-name").value.trim();
+    const name = readGlossaryText($("glossary-name"));
     const terms = glossary();
     if (!name || !terms.length) throw new Error(t("名前と用語を1組以上入力してください。"));
     if (selectedGlossaryIds.has(editingGlossaryId)) {
@@ -833,18 +910,20 @@ $("glossary-file").addEventListener("change", async (event) => {
   const [file] = event.target.files;
   event.target.value = "";
   if (!file) return;
-  const editor = $("glossary-form");
-  editor.inert = true;
+  glossaryWorkspace.inert = true;
+  feedback("glossary-file-feedback", "");
   try {
     const presets = JSON.parse(await file.text());
     const imported = await api("glossaries/import", "POST", presets);
     glossaryPresets.push(...imported);
     renderGlossaryOptions();
-    feedback("glossary-feedback", t("{0}件の用語集を追加しました。", imported.length));
+    syncGlossaryEditor();
+    feedback("glossary-file-feedback", t("{0}件の用語集を追加しました。", imported.length));
   } catch (error) {
-    feedback("glossary-feedback", error instanceof SyntaxError ? t("JSONファイルを読み込めませんでした。") : error.message, true);
+    feedback("glossary-file-feedback", error instanceof SyntaxError ? t("JSONファイルを読み込めませんでした。") : error.message, true);
   } finally {
-    editor.inert = false;
+    glossaryWorkspace.inert = false;
+    $("import-glossaries").focus();
   }
 });
 
@@ -1213,10 +1292,28 @@ panes.addEventListener("click", async (event) => {
 for (const element of [text, source, target, form, activeGlossary]) {
   element.addEventListener("input", updateControls);
 }
-activeGlossary.addEventListener("change", () => {
-  selectedGlossaryIds = new Set(Array.from(activeGlossary.querySelectorAll("input:checked"), (input) => input.value));
+function changeGlossarySelection({ target: checkbox, currentTarget }) {
+  feedback("glossary-picker-feedback", "");
+  feedback("glossary-library-feedback", "");
+  if (checkbox.checked) {
+    try {
+      selectedTerms(glossaryPresets.filter(({ id }) => id === checkbox.value || selectedGlossaryIds.has(id)));
+    } catch (error) {
+      checkbox.checked = false;
+      const status = currentTarget.id === "glossary-choices" ? "glossary-picker-feedback" : "glossary-library-feedback";
+      feedback(status, error.message, true);
+      positionSettingsPanel();
+      return;
+    }
+    selectedGlossaryIds.add(checkbox.value);
+  } else {
+    selectedGlossaryIds.delete(checkbox.value);
+  }
+  updateGlossarySelection();
   saveTranslationOptions();
-});
+}
+$("glossary-choices").addEventListener("change", changeGlossarySelection);
+$("glossary-library-choices").addEventListener("change", changeGlossarySelection);
 form.addEventListener("change", saveTranslationOptions);
 
 function openNativeLanguage() {
