@@ -95,22 +95,7 @@ main { --main-block-space: 2rem; display: flex; flex-direction: column; justify-
   min-height: var(--main-block-space);
   overflow-wrap: anywhere;
 }
-.translation-messages > p { grid-column: 1; margin: .5rem 0 0; }
-.translation-messages:has(#stop-translation:not([hidden])) { grid-template-columns: minmax(0, 1fr) auto; column-gap: .5rem; }
-#stop-translation:not([hidden]) {
-  display: grid;
-  place-items: center;
-  grid-area: 1 / 2 / span 2;
-  width: 44px;
-  height: 44px;
-  margin-top: .5rem;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--action);
-  color: var(--action-text);
-}
-#stop-translation svg { width: 1.65rem; height: 1.65rem; fill: currentColor; }
+.translation-messages > p { margin: .5rem 0 0; }
 #status:empty, #feedback:empty { display: none; }
 .workspace { border: 1px solid var(--border); border-radius: 22px; background: var(--surface); box-shadow: 0 4px 18px #2021230a; }
 .panes {
@@ -237,8 +222,19 @@ summary { cursor: pointer; border-radius: var(--control-radius); }
 }
 .retranslate-control { display: flex; border: 1px solid transparent; background: var(--action); color: var(--action-text); }
 .retranslate-control[hidden] { display: none; }
-.retranslate-control:has(button:first-child:disabled):not(:has([aria-busy="true"])) { background: var(--action-disabled); }
+.retranslate-control:has(button:first-child:disabled):not(:has(#stop-translation:not([hidden]))) { background: var(--action-disabled); }
 .retranslate-control button { border: 0; border-radius: 999px 0 0 999px; padding-inline: 1rem; background: transparent; }
+.translate-main { position: relative; display: grid; }
+.translate-main:has(#stop-translation:not([hidden])) #translate { visibility: hidden; }
+#stop-translation:not([hidden]) {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: inherit;
+}
+#stop-translation svg { width: 1.65rem; height: 1.65rem; fill: currentColor; }
 .retranslate-control button:disabled { opacity: 1; }
 .retranslate-control .retranslate-picker {
   display: flex;

@@ -197,7 +197,13 @@ panes.addEventListener("scrollend", () => {
   firstVisiblePane = Math.max(0, Math.min(lastPanePosition(), Math.round(direction * panes.scrollLeft / paneWidth)));
   updatePaneNavigation();
 });
-$("pane-previous").addEventListener("click", () => showPanes(firstVisiblePane - 1));
+$("pane-previous").addEventListener("click", (event) => {
+  const wasFocused = document.activeElement === event.currentTarget;
+  showPanes(firstVisiblePane - 1);
+  if (wasFocused && firstVisiblePane === 0 && translationController) {
+    $("stop-translation").focus({ preventScroll: true });
+  }
+});
 $("pane-next").addEventListener("click", () => showPanes(firstVisiblePane + 1));
 showPanes(0);
 
@@ -347,11 +353,13 @@ function updateControls() {
   const focused = document.activeElement;
   const focusStop = focused === translate || focused?.matches(".retranslate");
   translate.disabled = busy || waitingForModel || !state.models.length || !savedFrequentLanguage || !text.value.trim();
-  translate.closest(".translate-control").hidden = translating;
   const stop = $("stop-translation");
   stop.hidden = !translating;
   stop.setAttribute("aria-disabled", String(!translationController || translationController.signal.aborted));
-  if (translationController && focusStop) stop.focus({ preventScroll: true });
+  if (translationController && focusStop) {
+    const control = firstVisiblePane === 0 ? stop : $("pane-previous");
+    control.focus({ preventScroll: true });
+  }
   model.disabled = busy || pickerModels().length < 2;
   $("stage-model").disabled = busy;
   device.disabled = busy || !state.gpu_available;
