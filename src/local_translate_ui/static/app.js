@@ -153,6 +153,86 @@ window.addEventListener("resize", fitPanesToViewport);
 singlePane.addEventListener("change", () => showPanes(firstVisiblePane, "instant"));
 
 const mobileSidebarToggle = $("mobile-sidebar-toggle");
+const sidebar = $("app-sidebar");
+const sidebarResize = $("sidebar-resize");
+const sidebarLayout = sidebar.parentElement;
+const sidebarWidthKey = "plamo.sidebarWidth";
+const minSidebarWidth = 192;
+const maxSidebarWidth = 352;
+let sidebarWidth = 224;
+let sidebarDrag;
+try {
+  const savedWidth = Number(localStorage.getItem(sidebarWidthKey));
+  if (savedWidth >= minSidebarWidth && savedWidth <= maxSidebarWidth) sidebarWidth = savedWidth;
+} catch {
+  // 保存した幅を読み込めない場合は初期幅を使う
+}
+
+function sidebarWidthLimit() {
+  return Math.min(maxSidebarWidth, Math.floor(window.innerWidth * .4));
+}
+
+function updateSidebarWidth() {
+  if (mobileSidebar.matches) return;
+  const limit = sidebarWidthLimit();
+  const width = Math.min(sidebarWidth, limit);
+  sidebarLayout.style.setProperty("--sidebar-width", `${width}px`);
+  sidebarResize.setAttribute("aria-valuemin", String(minSidebarWidth));
+  sidebarResize.setAttribute("aria-valuemax", String(limit));
+  sidebarResize.setAttribute("aria-valuenow", String(width));
+}
+
+function setSidebarWidth(width) {
+  sidebarWidth = Math.max(minSidebarWidth, Math.min(sidebarWidthLimit(), Math.round(width)));
+  updateSidebarWidth();
+}
+
+function saveSidebarWidth() {
+  try {
+    localStorage.setItem(sidebarWidthKey, String(sidebarWidth));
+  } catch {
+    // 保存できない場合も現在のページには反映する
+  }
+}
+
+sidebarResize.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || sidebarDrag) return;
+  event.preventDefault();
+  sidebarDrag = {
+    id: event.pointerId, x: event.clientX, width: sidebar.offsetWidth,
+    direction: document.documentElement.dir === "rtl" ? -1 : 1,
+  };
+  sidebarResize.setPointerCapture(event.pointerId);
+  sidebarResize.setAttribute("data-dragging", "");
+});
+sidebarResize.addEventListener("pointermove", (event) => {
+  if (sidebarDrag?.id !== event.pointerId || mobileSidebar.matches) return;
+  setSidebarWidth(sidebarDrag.width + (event.clientX - sidebarDrag.x) * sidebarDrag.direction);
+});
+sidebarResize.addEventListener("lostpointercapture", (event) => {
+  if (sidebarDrag?.id !== event.pointerId) return;
+  sidebarDrag = undefined;
+  sidebarResize.removeAttribute("data-dragging");
+  saveSidebarWidth();
+});
+sidebarResize.addEventListener("click", (event) => event.stopPropagation());
+sidebarResize.addEventListener("keydown", (event) => {
+  const direction = document.documentElement.dir === "rtl" ? -1 : 1;
+  const width = sidebar.offsetWidth;
+  const sizes = {
+    ArrowLeft: width - 16 * direction,
+    ArrowRight: width + 16 * direction,
+    Home: minSidebarWidth,
+    End: sidebarWidthLimit(),
+  };
+  if (!Object.hasOwn(sizes, event.key)) return;
+  event.preventDefault();
+  setSidebarWidth(sizes[event.key]);
+  saveSidebarWidth();
+});
+window.addEventListener("resize", updateSidebarWidth);
+updateSidebarWidth();
+
 function setMobileSidebar(expanded) {
   mobileSidebarToggle.setAttribute("aria-expanded", String(expanded));
   mobileSidebarToggle.setAttribute("aria-label", expanded ? t("サイドバーを閉じる") : t("サイドバーを開く"));

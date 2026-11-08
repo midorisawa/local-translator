@@ -49,6 +49,7 @@ async function loadMessages(locale) {
 const english = new Map([
   ["ローカルAI翻訳", "Local AI Translator"],
   ["サイドバーを開く", "Open sidebar"],
+  ["サイドバーの幅を調整", "Resize sidebar"],
   ["新しい翻訳", "New translation"],
   ["翻訳ツール", "Translation tools"],
   ["モデル管理", "Manage models"],
