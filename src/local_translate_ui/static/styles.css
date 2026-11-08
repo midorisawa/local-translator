@@ -5,7 +5,7 @@
   --surface-result: light-dark(#fafafa, #1d1d20);
   --surface-hover: light-dark(#eeeeef, #303034);
   --placeholder: light-dark(#696a70, #a5a5af);
-  --focus: light-dark(#52525b, #a9bdf6);
+  --focus: light-dark(#525252, #bdbdbd);
   --success: light-dark(#26744b, #83d9a5);
   --danger-text: light-dark(#a02538, #ff9eac);
   --gpu-text: light-dark(#6e4600, #ffdf91);
@@ -60,13 +60,18 @@ textarea::placeholder, input::placeholder { color: var(--placeholder); }
 #mobile-sidebar-toggle, #mobile-new-translation, .mobile-title { display: none; }
 .sidebar { position: sticky; top: 0; display: flex; flex-direction: column; height: 100dvh; background: var(--surface-muted); border-inline-end: 1px solid var(--border); padding: 1.25rem .75rem; }
 #sidebar-resize { position: absolute; z-index: 2; inset-block: 0; inset-inline-end: -6px; width: 12px; cursor: col-resize; touch-action: none; }
+#sidebar-resize:focus-visible { outline: none; }
 #sidebar-resize:is(:hover, :focus-visible, [data-dragging])::after {
   content: "";
   position: absolute;
   inset-block: 0;
   inset-inline-start: calc(50% - 1px);
-  width: 2px;
-  background: var(--focus);
+  border-inline-start: 2px solid var(--focus);
+  opacity: .35;
+}
+#sidebar-resize:focus-visible::after { opacity: .65; }
+@media (forced-colors: active) {
+  #sidebar-resize:focus-visible::after { opacity: 1; }
 }
 .brand { display: inline-block; margin: 0 .65rem 1.25rem; text-decoration: none; font-size: 1.125rem; font-weight: 700; }
 .sidebar-nav { display: grid; gap: .25rem; }
