@@ -224,17 +224,35 @@ summary { cursor: pointer; border-radius: var(--control-radius); }
 .retranslate-control[hidden] { display: none; }
 .retranslate-control:has(button:first-child:disabled):not(:has(#stop-translation:not([hidden]))) { background: var(--action-disabled); }
 .retranslate-control button { border: 0; border-radius: 999px 0 0 999px; padding-inline: 1rem; background: transparent; }
-.translate-main { position: relative; display: grid; }
+.translate-control { position: relative; }
+.translate-main { display: grid; }
 .translate-main:has(#stop-translation:not([hidden])) #translate { visibility: hidden; }
+.translate-control:has(#stop-translation:not([hidden])) #translate-language { visibility: hidden; }
 #stop-translation:not([hidden]) {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
   padding: 0;
+  border-radius: 999px;
   color: inherit;
 }
-#stop-translation svg { width: 1.65rem; height: 1.65rem; fill: currentColor; }
+#stop-translation .stop-spinner {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  color: inherit;
+  animation: button-spin .75s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  #stop-translation .stop-spinner { animation: none; }
+}
 .retranslate-control button:disabled { opacity: 1; }
 .retranslate-control .retranslate-picker {
   display: flex;
