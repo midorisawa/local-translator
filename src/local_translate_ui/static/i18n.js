@@ -1,3 +1,5 @@
+import { offlineCacheName } from "./offline-cache.js";
+
 // Keep these tags aligned with the translation languages in languages.py.
 const supported = new Set([
   "ja", "en", "zh-hans", "zh-hant", "ko", "ar", "az", "be", "bg", "bn", "ca", "ceb",
@@ -30,8 +32,14 @@ export const uiLocale = preferredLocale !== "ja" && !messages ? "en" : preferred
 async function loadMessages(locale) {
   if (!locale || locale === "ja" || locale === "en") return null;
   try {
-    const response = await fetch(new URL(`./locales/${locale}.json`, import.meta.url));
-    if (response.ok) return await response.json();
+    const url = new URL(`./locales/${locale}.json`, import.meta.url);
+    const response = await fetch(url);
+    if (response.ok) {
+      if (typeof window !== "undefined" && navigator.serviceWorker && !navigator.serviceWorker.controller) {
+        await caches.open(offlineCacheName).then((cache) => cache.put(url, response.clone())).catch(() => {});
+      }
+      return await response.json();
+    }
   } catch {
     // The English catalog is bundled for use when the locale file is unavailable.
   }

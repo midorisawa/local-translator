@@ -2,6 +2,11 @@ import { localizePage, preferredLocale, t, uiLocale } from "./i18n.js";
 
 localizePage();
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register(new URL("../service-worker.js", import.meta.url), { type: "module" })
+    .catch((error) => console.warn("Service worker registration failed:", error));
+}
+
 const $ = (id) => document.getElementById(id);
 
 for (const dialog of document.querySelectorAll('dialog[data-dismiss-on-backdrop]')) {
