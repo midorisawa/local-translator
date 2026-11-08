@@ -128,9 +128,7 @@ main { --main-block-space: 2rem; display: flex; flex-direction: column; justify-
 }
 .pane { display: flex; flex-direction: column; gap: .7rem; padding: 1rem; min-height: min(22rem, var(--pane-limit, 60dvh)); max-height: var(--pane-limit, 60dvh); }
 .pane { scroll-snap-align: start; }
-.pane > label, .source-heading label { font-size: .875rem; font-weight: 650; }
-.source-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
-.source-heading #count { direction: ltr; color: var(--text-muted); font-size: .85rem; white-space: nowrap; }
+.pane > label { font-size: .875rem; font-weight: 650; }
 .pane > textarea { field-sizing: content; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .result { border-inline-start: 1px solid var(--border); background: var(--surface-result); }
 :root[dir="rtl"] .pane textarea:placeholder-shown { text-align: right; }

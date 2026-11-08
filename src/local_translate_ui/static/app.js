@@ -463,7 +463,6 @@ function updateControls() {
     pane.querySelector(".retranslate").disabled = disabled;
     pane.querySelector(".retranslate-language").disabled = disabled;
   }
-  $("count").textContent = String(text.value.length);
   const targetPicker = $("translate-language");
   targetPicker.disabled = $("translate").disabled;
   const targetName = target.selectedOptions[0]?.textContent;
