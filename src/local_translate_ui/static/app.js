@@ -121,6 +121,7 @@ window.addEventListener("resize", positionSettingsPanel);
 window.addEventListener("scroll", positionSettingsPanel, true);
 let state = { models: [] };
 let translating = false;
+let translationController;
 let selecting = false;
 let refreshing = false;
 let historyRequest = 0;
@@ -262,12 +263,25 @@ async function warmVisibleTab() {
 document.addEventListener("visibilitychange", warmVisibleTab);
 warmVisibleTab();
 
-async function translateStream(body, onFragment) {
+async function runTranslation(body, onFragment, signal) {
   const { translateInBrowser } = await import("./webgpu.js");
   const { translationModel } = await import("./browser-api.js");
-  const result = await translateInBrowser(
-    body, onFragment, (message) => feedback("feedback", message), await translationModel(),
+  signal.throwIfAborted();
+  const selection = await translationModel();
+  signal.throwIfAborted();
+  return translateInBrowser(
+    body, onFragment, (message) => feedback("feedback", message), selection, signal,
   );
+}
+
+async function translateStream(body, onFragment) {
+  const signal = translationController.signal;
+  const stopped = new Promise((_, reject) => {
+    signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+  });
+  const result = await Promise.race([runTranslation(body, onFragment, signal), stopped]);
+  translationController = undefined;
+  updateControls();
   if (body.save_history && result.text) {
     try {
       const id = crypto.randomUUID();
@@ -329,8 +343,15 @@ function updateControls() {
   const busy = translating || selecting || Boolean(state.loading);
   const waitingForModel = modelDraft && (modelDraft.model !== modelDraft.initialModel ||
     modelDraft.device !== modelDraft.initialDevice);
-  $("translate").disabled = busy || waitingForModel || !state.models.length || !savedFrequentLanguage || !text.value.trim();
-  $("translate").setAttribute("aria-busy", String(translating));
+  const translate = $("translate");
+  const focused = document.activeElement;
+  const focusStop = focused === translate || focused?.matches(".retranslate");
+  translate.disabled = busy || waitingForModel || !state.models.length || !savedFrequentLanguage || !text.value.trim();
+  translate.closest(".translate-control").hidden = translating;
+  const stop = $("stop-translation");
+  stop.hidden = !translating;
+  stop.setAttribute("aria-disabled", String(!translationController || translationController.signal.aborted));
+  if (translationController && focusStop) stop.focus({ preventScroll: true });
   model.disabled = busy || pickerModels().length < 2;
   $("stage-model").disabled = busy;
   device.disabled = busy || !state.gpu_available;
@@ -942,6 +963,26 @@ document.addEventListener("click", (event) => {
   }
 });
 
+$("stop-translation").addEventListener("click", () => {
+  if (translationController) translationController.abort();
+});
+
+function finishTranslation(trigger) {
+  const restoreFocus = document.activeElement === $("stop-translation");
+  translationController = undefined;
+  translating = false;
+  updateControls();
+  if (!restoreFocus) return;
+  const visible = Array.from(panes.children).slice(firstVisiblePane, firstVisiblePane + (singlePane.matches ? 1 : 2));
+  if (!trigger.disabled && visible.some((pane) => pane.contains(trigger))) {
+    trigger.focus({ preventScroll: true });
+  } else {
+    const pane = visible.at(-1);
+    pane.tabIndex = -1;
+    pane.focus({ preventScroll: true });
+  }
+}
+
 $("translation").addEventListener("submit", async (event) => {
   event.preventDefault();
   if ($("translate").disabled) return;
@@ -953,6 +994,7 @@ $("translation").addEventListener("submit", async (event) => {
   translationSettings.open = false;
   modelPicker.open = false;
   translating = true;
+  translationController = new AbortController();
   const japaneseForm = form.disabled ? "" : form.value;
   output.value = "";
   resetResults();
@@ -982,10 +1024,10 @@ $("translation").addEventListener("submit", async (event) => {
     feedback("feedback", notices.join(" "), Boolean(result.history_error));
     if (result.text && !result.history_error) loadHistory();
   } catch (error) {
-    feedback("feedback", error.message, true);
+    const stopped = translationController?.signal.aborted;
+    feedback("feedback", stopped ? t("翻訳を停止しました。") : error.message, !stopped);
   } finally {
-    translating = false;
-    updateControls();
+    finishTranslation($("translate"));
   }
 });
 
@@ -1052,10 +1094,12 @@ function addResultPane(previous, result) {
 
 async function saveCurrentChain() {
   if (!currentHistoryId) return;
-  const results = Array.from(panes.querySelectorAll(".result"), (pane) => ({
-    ...resultLanguages.get(pane),
-    text: pane.querySelector("textarea").value,
-  }));
+  const results = Array.from(panes.querySelectorAll(".result"))
+    .filter((pane) => resultLanguages.has(pane))
+    .map((pane) => ({
+      ...resultLanguages.get(pane),
+      text: pane.querySelector("textarea").value,
+    }));
   await api(`history/${encodeURIComponent(currentHistoryId)}/chain`, "PUT", { results });
 }
 
@@ -1080,6 +1124,7 @@ async function retranslate(pane, selectedLanguage) {
   const field = next.querySelector("textarea");
   const elapsed = next.querySelector(".elapsed");
   translating = true;
+  translationController = new AbortController();
   showPanes(Array.from(panes.children).indexOf(next) - (singlePane.matches ? 0 : 1),
     singlePane.matches ? "instant" : "auto");
   feedback("feedback", t(displayedWarmup ? "モデルを読み込み中…" : "再翻訳中…"));
@@ -1102,10 +1147,10 @@ async function retranslate(pane, selectedLanguage) {
       next.remove();
       showPanes(firstVisiblePane);
     }
-    feedback("feedback", error.message, true);
+    const stopped = translationController?.signal.aborted;
+    feedback("feedback", stopped ? t("翻訳を停止しました。") : error.message, !stopped);
   } finally {
-    translating = false;
-    updateControls();
+    finishTranslation(pane.querySelector(".retranslate"));
   }
 }
 

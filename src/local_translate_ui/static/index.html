@@ -91,6 +91,7 @@
       </section>
       <footer class="sidebar-footer">
         <div>
+          <div lang="en" dir="ltr">Build with PLaMo</div>
           <div>作成者：<a href="https://midorisawa.com/">midorisawa</a></div>
           <div>Source：<a href="https://github.com/midorisawa/local-translator">GitHub</a></div>
         </div>
@@ -169,8 +170,8 @@
                 </div>
               </details>
               <div class="retranslate-control translate-control">
-                <button class="loading-button" id="translate" aria-keyshortcuts="Control+Enter" disabled>
-                  <span class="loading-label">翻訳</span><span class="loading-spinner" aria-hidden="true"></span>
+                <button id="translate" aria-keyshortcuts="Control+Enter" disabled>
+                  翻訳
                   <kbd class="translate-shortcut" aria-hidden="true">Ctrl + ↵</kbd>
                 </button>
                 <button id="translate-language" class="retranslate-picker" type="button" aria-label="翻訳先の言語" title="翻訳先の言語" popovertarget="retranslate-menu" disabled>
@@ -213,6 +214,9 @@
       <div class="translation-messages">
         <p id="feedback" role="status"></p>
         <p id="status" role="status"></p>
+        <button id="stop-translation" type="button" aria-label="翻訳を停止" title="翻訳を停止" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
       </div>
     </form>
     </main>

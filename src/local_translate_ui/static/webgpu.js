@@ -21,7 +21,10 @@ export function resetRuntime() {
   warming = undefined;
   clearTimeout(idleTimer);
   idleTimer = undefined;
-  worker?.terminate();
+  if (worker) {
+    worker.onmessage = worker.onerror = null;
+    worker.terminate();
+  }
   worker = undefined;
   runtimeKey = undefined;
   runtimeDevice = undefined;
@@ -35,7 +38,7 @@ window.addEventListener("pageshow", () => {
   pageActive = true;
 });
 
-export async function translateInBrowser(body, onFragment, onStatus, selection) {
+export async function translateInBrowser(body, onFragment, onStatus, selection, signal) {
   const terms = body.glossary || [];
   const inputs = [body.text, body.context, ...terms.flatMap(({ source, target }) => [source, target])];
   if (inputs.some((text) => text?.includes("<|plamo:") || text?.includes("\0"))) {
@@ -43,6 +46,7 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
   }
   const automatic = body.source === "auto";
   const source = automatic ? await detectLanguage(body.text) : body.source;
+  signal.throwIfAborted();
   const native = source === body.target ||
     (source === "zh" && (body.target === "zh-hans" || body.target === "zh-hant"));
   const target = body.frequent_language && native ? body.frequent_language : body.target;
@@ -58,9 +62,18 @@ export async function translateInBrowser(body, onFragment, onStatus, selection) 
   const inputLanguage = automatic ? "" : lang + source;
   const prompt = `${tag}dataset${msg}translation${context}${glossary}${tag}input${inputLanguage}${msg}${body.text}${tag}output${lang}${target}${form}${msg}`;
   const key = `${selection.model}/${selection.device}`;
-  if (warming?.key === key) await warming.done;
-  const result = await runInference(selection, prompt, onFragment, onStatus);
-  return { source, target, ...result };
+  signal.addEventListener("abort", resetRuntime, { once: true });
+  try {
+    if (warming?.key === key) await warming.done;
+    signal.throwIfAborted();
+    const result = await runInference(selection, prompt, onFragment, (status) => {
+      if (!signal.aborted) onStatus(status);
+    });
+    signal.throwIfAborted();
+    return { source, target, ...result };
+  } finally {
+    signal.removeEventListener("abort", resetRuntime);
+  }
 }
 
 export function warmRuntime(selection) {

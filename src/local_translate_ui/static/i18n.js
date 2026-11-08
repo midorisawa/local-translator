@@ -203,6 +203,8 @@ const english = new Map([
   ["{0}件の用語集を追加しました。", "Glossaries added: {0}."],
   ["JSONファイルを読み込めませんでした。", "Could not read the JSON file."],
   ["翻訳中…", "Translating…"],
+  ["翻訳を停止", "Stop translation"],
+  ["翻訳を停止しました。", "Translation stopped."],
   ["翻訳時間 {0}秒", "Translated in {0} s"],
   ["出力上限に達しました。原文を分けて再翻訳してください。", "Output limit reached. Split the source text and translate it again."],
   ["「再翻訳」の右にある言語ボタンから翻訳先を選んでください。", "Choose a target language using the language button next to Retranslate."],
