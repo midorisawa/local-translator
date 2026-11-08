@@ -28,6 +28,7 @@ endif()
 target_link_options(plamo PRIVATE
     "-O1" "--no-entry" "-lworkerfs.js" "-sMODULARIZE=1" "-sEXPORT_ES6=1"
     "-sENVIRONMENT=worker" "-sALLOW_MEMORY_GROWTH=1" "-sFORCE_FILESYSTEM=1" "-sSTACK_SIZE=1048576"
+    "-sEXPORTED_FUNCTIONS=_malloc,_free"
     "-sEXPORTED_RUNTIME_METHODS=ccall,FS,WORKERFS,HEAPU8")
 if(GGML_WEBGPU)
     target_link_options(plamo PRIVATE "-sJSPI_EXPORTS=load_model,start_translation,next_token")

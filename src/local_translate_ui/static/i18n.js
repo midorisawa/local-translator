@@ -47,6 +47,7 @@ async function loadMessages(locale) {
 }
 
 const english = new Map([
+  ["参考文脈や用語集が長すぎます。短くしてから翻訳してください。", "The context or glossary is too long. Shorten it and try again."],
   ["ローカルAI翻訳", "Local AI Translator"],
   ["サイドバーを開く", "Open sidebar"],
   ["サイドバーの幅を調整", "Resize sidebar"],
@@ -115,7 +116,7 @@ const english = new Map([
   ["閉じる", "Close"],
   ["「新規作成」で用語集を作成できます。保存済みの用語集を変更するには、その用語集の「編集」を選びます。", "Choose New glossary to create one, or Edit next to a saved glossary to change it."],
   ["有効 {0} / {1}組", "{0} / {1} terms enabled"],
-  ["適用する用語 {0} / 20組", "{0} / 20 terms to apply"],
+  ["適用する用語 {0}組", "Terms to apply: {0}"],
   ["選択中 {0}件 · {1}", "{0} selected · {1}"],
   ["「{0}」を編集", "Edit “{0}”"],
   ["用語 {0}", "Term {0}"],
@@ -190,10 +191,9 @@ const english = new Map([
   ["用語集の{0}行目の両方の欄に用語を入力してください。", "Enter a term in both fields on row {0}."],
   ["この用語を削除しますか？", "Delete this term?"],
   ["入力した2つの用語を編集欄から取り除きます。", "Both terms will be removed from the editor."],
-  ["{0} / 20行", "{0} / 20 rows"],
+  ["{0}行", "{0} rows"],
   ["翻訳設定を保存できませんでした。", "Could not save translation settings."],
   ["「{0}」に異なる訳語が指定されています。適用する用語集を見直してください。", "“{0}” has conflicting translations. Review the selected glossaries."],
-  ["適用する用語は合計20組までです。用語集の選択を減らしてください。", "You can apply up to 20 terms in total. Select fewer glossaries."],
   ["保存済みの用語集はありません。", "No saved glossaries."],
   ["{0}件が有効", "Active terms: {0}"],
   ["用語集を編集", "Edit glossary"],

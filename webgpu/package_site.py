@@ -6,10 +6,17 @@ from hashlib import sha256
 from pathlib import Path
 
 
+def validate_runtime(module):
+    if b"_count_prompt_tokens" not in module.read_bytes():
+        raise SystemExit(f"Incompatible Wasm runtime: {module}. Rebuild the wasm-v3 assets.")
+
+
 def package_site(output, model_url=""):
     root = Path(__file__).resolve().parents[1]
     source = root / "src/local_translate_ui/static"
     static = output / "static"
+    for directory in ("", "cpu", "gpu64", "cpu64"):
+        validate_runtime(static / "runtime-v3" / directory / "plamo.mjs")
     app_assets = (
         "app.js", "i18n.js", "styles.css", "webgpu.js", "webgpu-worker.js",
         "browser-api.js", "browser-models.js", "browser-records.js", "browser-langid.js",
@@ -23,6 +30,7 @@ def package_site(output, model_url=""):
     index = (source / "index.html").read_text(encoding="utf-8")
     shell_assets = (*app_assets, "languages.json")
     asset_urls = {filename: f"./static/{filename}" for filename in shell_assets}
+    asset_urls["webgpu-worker.js"] += "?v=3"
     for filename in ("app.js", "styles.css"):
         version = sha256((static / filename).read_bytes()).hexdigest()[:12]
         url = asset_urls[filename]

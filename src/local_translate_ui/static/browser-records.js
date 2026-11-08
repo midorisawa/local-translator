@@ -111,11 +111,11 @@ async function historyApi(id, method, body) {
 
 function glossary(preset) {
   if (!preset || typeof preset.name !== "string" || !preset.name.trim() || preset.name.length > 80 ||
-      !Array.isArray(preset.terms) || !preset.terms.length || preset.terms.length > 20) {
+      !Array.isArray(preset.terms) || !preset.terms.length) {
     throw new Error(t("用語集の名前と用語を確認してください。"));
   }
   const terms = preset.terms.map(({ source, target, enabled = true, bidirectional = false }) => {
-    if ([source, target].some((term) => typeof term !== "string" || !term.trim() || term.length > 200) ||
+    if ([source, target].some((term) => typeof term !== "string" || !term.trim()) ||
         typeof enabled !== "boolean" || typeof bidirectional !== "boolean") {
       throw new Error(t("用語集の用語を確認してください。"));
     }

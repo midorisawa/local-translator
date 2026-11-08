@@ -463,7 +463,7 @@ function updateControls() {
     pane.querySelector(".retranslate").disabled = disabled;
     pane.querySelector(".retranslate-language").disabled = disabled;
   }
-  $("count").textContent = `${text.value.length} / 4000`;
+  $("count").textContent = String(text.value.length);
   const targetPicker = $("translate-language");
   targetPicker.disabled = $("translate").disabled;
   const targetName = target.selectedOptions[0]?.textContent;
@@ -792,8 +792,7 @@ function addGlossaryRow(term = {}) {
 
 function updateGlossaryRows() {
   const count = $("glossary").childElementCount;
-  $("glossary-term-count").textContent = t("{0} / 20行", count);
-  $("add-term").disabled = count >= 20;
+  $("glossary-term-count").textContent = t("{0}行", count);
   Array.from($("glossary").children).forEach((row, index) => {
     row.querySelector("legend").textContent = t("用語 {0}", index + 1);
   });
@@ -831,7 +830,6 @@ function selectedTerms(presets = selectedGlossaries()) {
       if (term.bidirectional) reversed.push(term);
     }
   }
-  if (terms.size > 20) throw new Error(t("適用する用語は合計20組までです。用語集の選択を減らしてください。"));
   for (const { source, target } of reversed) addTerm(target, source);
   return Array.from(terms.values());
 }
@@ -884,7 +882,7 @@ function updateGlossarySelection() {
   const selected = selectedGlossaries();
   const sources = new Set(selected.flatMap(({ terms }) =>
     terms.filter((term) => term.enabled !== false).map((term) => term.source)));
-  const count = t("適用する用語 {0} / 20組", sources.size);
+  const count = t("適用する用語 {0}組", sources.size);
   $("glossary-picker-count").textContent = count;
   $("glossary-library-count").textContent = t("選択中 {0}件 · {1}", selected.length, count);
   updateControls();

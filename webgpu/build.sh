@@ -11,14 +11,14 @@ curl --fail --location --retry 3 -o "$stage/wasm.zip" "$WASM_RELEASE_URL"
 unzip -q "$stage/wasm.zip" -d "$site"
 require_asset() {
   if [[ ! -f "$site/static/$1" || ! -s "$site/static/$1" ]]; then
-    echo "Missing or empty static/$1 in the Wasm Release ZIP. Use wasm-v2 or later." >&2
+    echo "Missing or empty static/$1 in the Wasm Release ZIP. Use wasm-v3 or later." >&2
     exit 1
   fi
 }
-for file in languages.json langid.json langid.bin.gz langid-license.txt runtime/llama-license.txt; do
+for file in languages.json langid.json langid.bin.gz langid-license.txt runtime-v3/llama-license.txt; do
   require_asset "$file"
 done
-for runtime in runtime runtime/cpu runtime/gpu64 runtime/cpu64; do
+for runtime in runtime-v3 runtime-v3/cpu runtime-v3/gpu64 runtime-v3/cpu64; do
   require_asset "$runtime/plamo.mjs"
   require_asset "$runtime/plamo.wasm"
 done

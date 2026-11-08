@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace {
-constexpr int context_size = 8192;
+constexpr int context_size = 16384;
 llama_model * model = nullptr;
 llama_context * context = nullptr;
 llama_sampler * sampler = nullptr;
@@ -41,6 +41,12 @@ EMSCRIPTEN_KEEPALIVE int load_model(int gpu_layers) {
     }
     sampler = llama_sampler_init_greedy();
     return 0;
+}
+
+EMSCRIPTEN_KEEPALIVE int count_prompt_tokens(const char * prompt) {
+    const int count = llama_tokenize(llama_model_get_vocab(model), prompt, std::strlen(prompt),
+                                     nullptr, 0, true, true);
+    return count == INT32_MIN ? -1 : -count;
 }
 
 EMSCRIPTEN_KEEPALIVE int start_translation(const char * prompt) {

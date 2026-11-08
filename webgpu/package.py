@@ -15,7 +15,7 @@ parser.add_argument("--model-url", default="")
 args = parser.parse_args()
 
 static = args.output / "static"
-runtime = static / "runtime"
+runtime = static / "runtime-v3"
 runtime.mkdir(parents=True, exist_ok=True)
 for build, destination in (
     (args.build, runtime), (args.cpu_build, runtime / "cpu"),

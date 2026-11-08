@@ -60,13 +60,20 @@ export async function translateInBrowser(body, onFragment, onStatus, selection, 
     `<|plamo:index|>${source}<|plamo:item|>${target}`).join("") : "";
   const form = body.form && target === "ja" ? `<|plamo:key|>form<|plamo:val|>${body.form}` : "";
   const inputLanguage = automatic ? "" : lang + source;
-  const prompt = `${tag}dataset${msg}translation${context}${glossary}${tag}input${inputLanguage}${msg}${body.text}${tag}output${lang}${target}${form}${msg}`;
+  const request = {
+    text: body.text,
+    prefix: `${tag}dataset${msg}translation${context}`,
+    glossary,
+    input: `${tag}input${inputLanguage}${msg}`,
+    historyOutput: `${tag}output${lang}${target}${msg}`,
+    output: `${tag}output${lang}${target}${form}${msg}`,
+  };
   const key = `${selection.model}/${selection.device}`;
   signal.addEventListener("abort", resetRuntime, { once: true });
   try {
     if (warming?.key === key) await warming.done;
     signal.throwIfAborted();
-    const result = await runInference(selection, prompt, onFragment, (status) => {
+    const result = await runInference(selection, request, onFragment, (status) => {
       if (!signal.aborted) onStatus(status);
     });
     signal.throwIfAborted();
@@ -89,7 +96,7 @@ export function warmRuntime(selection) {
   return job.done;
 }
 
-async function runInference(selection, prompt, onFragment, onStatus) {
+async function runInference(selection, request, onFragment, onStatus) {
   if (!pageActive) {
     throw new Error(t("ブラウザーの推論ランタイムを起動できませんでした。"));
   }
@@ -102,9 +109,9 @@ async function runInference(selection, prompt, onFragment, onStatus) {
     throw new Error(t("ブラウザーの推論ランタイムを起動できませんでした。"));
   }
   if (!worker && !blob) return;
-  if (prompt === undefined && document.visibilityState !== "visible") return;
+  if (request === undefined && document.visibilityState !== "visible") return;
   function run(device) {
-    worker ??= new Worker(new URL("./webgpu-worker.js", import.meta.url), { type: "module" });
+    worker ??= new Worker(new URL("./webgpu-worker.js?v=3", import.meta.url), { type: "module" });
     runtimeKey = key;
     const active = worker;
     return new Promise((resolve, reject) => {
@@ -146,7 +153,7 @@ async function runInference(selection, prompt, onFragment, onStatus) {
           case "error": fail(data.text); break;
         }
       };
-      active.postMessage({ prompt, blob, model: selection.model, device });
+      active.postMessage({ request, blob, model: selection.model, device });
     });
   }
 
